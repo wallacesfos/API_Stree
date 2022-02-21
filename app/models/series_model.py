@@ -1,6 +1,7 @@
 from app.configs.database import db
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from dataclasses import dataclass
+from datetime import datetime
 
 
 @dataclass
@@ -11,6 +12,10 @@ class SeriesModel(db.Model):
     description: str
     seasons: int
     trailer: str
+    created_at: datetime
+    views: int
+    dubbed: bool
+    subtitle: bool
 
     __tablename__ = 'series'
 
@@ -18,6 +23,10 @@ class SeriesModel(db.Model):
     name = Column(String, nullable=False, unique=True)
     image = Column(String, nullable=False)
     description = Column(String, nullable=False)
+    subtitle = Column(Boolean, nullable=False)
+    dubbed = Column(Boolean, nullable=False)
+    views = Column(Integer, default=0)
     seasons = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
     trailer = Column(String)
     

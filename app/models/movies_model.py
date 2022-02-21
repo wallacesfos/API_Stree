@@ -1,9 +1,10 @@
 from app.configs.database import db
-from sqlalchemy import Column, String, Integer
+from sqlalchemy import Column, String, Integer, Boolean, DateTime
 from dataclasses import dataclass
 from sqlalchemy.orm import relationship, backref
 from app.models.profile_model import ProfileModel
 from app.models.favorite_movies_model import favorite_movies
+from datetime import datetime
 
 @dataclass
 class MoviesModel(db.Model):
@@ -21,7 +22,11 @@ class MoviesModel(db.Model):
     name = Column(String, nullable=False, unique=True)
     image = Column(String, nullable=False)
     description = Column(String, nullable=False)
+    subtitle = Column(Boolean, nullable=False)
+    dubbed = Column(Boolean, nullable=False)
+    views = Column(Integer, default=0)
     duration = Column(Integer, nullable=False)
+    created_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
     link = Column(String, nullable=False)
     trailers = Column(String)
 
