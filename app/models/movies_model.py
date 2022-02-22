@@ -30,8 +30,8 @@ class MoviesModel(db.Model):
     dubbed = Column(Boolean, nullable=False)
     views = Column(Integer, default=0)
     duration = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
-    updated_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now())
     link = Column(String, nullable=False)
     trailers = Column(String)
 
