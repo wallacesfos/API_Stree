@@ -28,5 +28,6 @@ class SeriesModel(db.Model):
     views = Column(Integer, default=0)
     seasons = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+    updated_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
     trailer = Column(String)
     

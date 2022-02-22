@@ -15,6 +15,10 @@ class MoviesModel(db.Model):
     duration: int
     link: str
     trailers: str
+    created_at: datetime
+    views: int
+    dubbed: bool
+    subtitle: bool
 
     __tablename__ = 'movies'
 
@@ -27,6 +31,7 @@ class MoviesModel(db.Model):
     views = Column(Integer, default=0)
     duration = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+    updated_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
     link = Column(String, nullable=False)
     trailers = Column(String)
 
