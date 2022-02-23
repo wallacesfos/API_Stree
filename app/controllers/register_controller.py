@@ -27,4 +27,4 @@ def create_register():
     except exc.IntegrityError:
         return {"error": "Email already exists"}, 409
     except Exception:
-        return {"error": "An unexpected error occurred"}
+        return {"error": "An unexpected error occurred"}, 400
