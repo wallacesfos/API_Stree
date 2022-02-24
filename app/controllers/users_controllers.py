@@ -3,9 +3,57 @@ from app.exc import PermissionError
 from app.models.user_model import UserModel
 from flask import request, current_app
 from sqlalchemy import exc
-
+from datetime import timedelta
 from app import utils
 
+
+def create_register():
+    body = request.get_json()
+
+    try:
+        utils.analyze_keys(["email", "password"], body)
+
+        password = body.pop("password")
+
+        user = UserModel(**body)
+
+        user.password_to_hash = password
+
+        current_app.db.session.add(user)
+        current_app.db.session.commit()
+
+        return {
+            "msg": "user created successfully"
+        }, 201
+    
+    except KeyError as e:
+        return {'error': str(e)}, 400
+    except exc.IntegrityError:
+        return {"error": "Email already exists"}, 409
+    except Exception:
+        return {"error": "An unexpected error occurred"}, 400
+
+
+def login_user():
+    body = request.get_json()
+    
+    try:
+        utils.analyze_keys(["email", "password"], body)
+
+        password = body.pop('password')
+
+        found_user = UserModel.query.filter_by(email=body['email']).first()
+
+        if not found_user or not found_user.verify_password(password):
+            return {"message": "Password or email invalid"}, 400
+
+        access_token = create_access_token(identity=found_user, expires_delta=timedelta(hours=24))
+
+        return {"access_token": access_token}, 200
+    except KeyError as e:
+        return {"error": str(e)}, 400
+    except Exception:
+        return {"error": "An unexpected error occurred"}, 400        
 
 @jwt_required()
 def update_users():
