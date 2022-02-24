@@ -2,6 +2,8 @@ from flask_jwt_extended import create_access_token
 from app.models.user_model import UserModel
 from flask import request
 from app import utils
+from datetime import timedelta
+
 
 
 def login_user():
@@ -17,7 +19,7 @@ def login_user():
         if not found_user or not found_user.verify_password(password):
             return {"message": "Password or email invalid"}, 400
 
-        access_token = create_access_token(identity=found_user)
+        access_token = create_access_token(identity=found_user, expires_delta=timedelta(hours=24))
 
         return {"access_token": access_token}, 200
     except KeyError as e:
