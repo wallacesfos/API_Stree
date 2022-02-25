@@ -1,4 +1,3 @@
-import string
 
 def analyze_keys(keys, request):
     
