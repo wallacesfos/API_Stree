@@ -34,6 +34,7 @@ def create_register():
         return {"error": "An unexpected error occurred"}, 400
 
 
+
 def login_user():
     body = request.get_json()
     
@@ -54,6 +55,8 @@ def login_user():
         return {"error": str(e)}, 400
     except Exception:
         return {"error": "An unexpected error occurred"}, 400        
+
+
 
 @jwt_required()
 def update_users():
@@ -85,6 +88,7 @@ def delete_user():
     current_app.db.session.commit()
 
     return {}, 204
+
 
 
 @jwt_required()
