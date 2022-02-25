@@ -1,10 +1,11 @@
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
+
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
+
 from app.utils import analyze_keys
 from app.exc import PermissionError
-
 
 @jwt_required()
 def create_serie():
@@ -33,7 +34,16 @@ def create_serie():
 
     except KeyError as e:
         return {"error": str(e)}
+
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
-        
 
+
+@jwt_required()
+def get_series():
+    series = SeriesModel.query.all()
+    
+    if not series:
+        return {"error": "No data found"},404
+
+    return jsonify(series),200
