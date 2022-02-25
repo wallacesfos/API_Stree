@@ -44,6 +44,6 @@ def get_series():
     series = SeriesModel.query.all()
     
     if not series:
-        return {"error": "Nenhum dado encontrado"},404
+        return {"error": "No data found"},404
 
     return jsonify(series),200
