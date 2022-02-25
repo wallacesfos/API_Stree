@@ -10,7 +10,7 @@ def create_profile():
     identity = get_jwt_identity()
 
     try: 
-        utils.analyze_keys(['name'], body)
+        utils.analyze_keys(['name', "kids"], body)
         
         profile = ProfileModel(**body, user_id=identity['id'])
         profile.name = body['name'].title()
@@ -35,6 +35,7 @@ def get_profiles():
         {
             "id": profile.id,
             "name": profile.name,
+            "kids": profile.kids
         } for profile in profiles
     ]
 
