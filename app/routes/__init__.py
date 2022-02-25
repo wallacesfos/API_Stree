@@ -1,5 +1,6 @@
 from flask import Flask
 from app.routes.users_route import bp_users
+from app.routes.series_route import bp_series
 
 from app.routes.series_route import bp_series
 
