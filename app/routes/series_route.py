@@ -1,6 +1,9 @@
 from flask import Blueprint
-from app.controllers.series_controller import get_serie_by_id
+from app.controllers.series_controller import create_serie,get_series, get_serie_by_id
 
-bp_series = Blueprint("bp_series", __name__, url_prefix="/series")
+bp_series = Blueprint("series", __name__, url_prefix="/series")
 
+bp_series.post("")(create_serie)
+bp_series.get("")(get_series)
 bp_series.get("/<int:id>")(get_serie_by_id)
+
