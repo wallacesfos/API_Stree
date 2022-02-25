@@ -1,8 +1,6 @@
-from sqlalchemy.orm.exc import NoResultFound
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
 from app.models.series_model import SeriesModel
-from app.models.user_model import UserModel
 from app.utils import analyze_keys
 from app.exc import PermissionError
 
@@ -11,7 +9,7 @@ def create_serie():
     try:
         session = current_app.db.session
         data = request.get_json()
-        keys = ["name", "image", "description", "seasons", "subtitle", "dubbed", "trailer"]
+        keys = ["name", "image", "description", "seasons", "subtitle", "dubbed", "trailer", "classification", "released_date"]
         
         administer = get_jwt_identity()
 

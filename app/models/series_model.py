@@ -16,6 +16,8 @@ class SeriesModel(db.Model):
     views: int
     dubbed: bool
     subtitle: bool
+    classification: int
+    released_date: datetime
 
     __tablename__ = 'series'
 
@@ -28,6 +30,8 @@ class SeriesModel(db.Model):
     views = Column(Integer, default=0)
     seasons = Column(Integer, nullable=False)
     created_at = Column(DateTime, default=datetime.now())
-    updated_at = Column(DateTime, default=datetime.now())   
+    updated_at = Column(DateTime, default=datetime.now())  
+    classification = Column(Integer, nullable=False)
+    released_date = Column(DateTime, nullable=False)
     trailer = Column(String)
     

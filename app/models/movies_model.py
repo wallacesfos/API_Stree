@@ -19,6 +19,8 @@ class MoviesModel(db.Model):
     views: int
     dubbed: bool
     subtitle: bool
+    classification: int
+    released_date: datetime
 
     __tablename__ = 'movies'
 
@@ -33,6 +35,8 @@ class MoviesModel(db.Model):
     created_at = Column(DateTime, default=datetime.now())
     updated_at = Column(DateTime, default=datetime.now())
     link = Column(String, nullable=False)
+    classification = Column(Integer, nullable=False)
+    released_date = Column(DateTime, nullable=False)
     trailers = Column(String)
 
     profile = relationship(ProfileModel, secondary=favorite_movies, backref=backref('movies'))
