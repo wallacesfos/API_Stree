@@ -69,9 +69,24 @@ def get_serie_by_name():
             
     
     serie = SeriesModel.query.filter_by(name=new_str).first()
+    
+    serie_serializer = {
+        
+        "name": serie.name,
+        "description": serie.description,
+        "image": serie.image,
+        "seasons": serie.seasons,
+        "episodes": [
+            {
+                "season": episode.season, 
+                "link": episode.link, 
+                "episode": episode.episode
+            }for episode in serie.episodes
+        ]
+    }
 
     if not serie:
         return {"message": "Serie not found"}, 404
 
-    return jsonify(serie),200
+    return jsonify(serie_serializer),200
     
