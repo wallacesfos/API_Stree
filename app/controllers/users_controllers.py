@@ -67,6 +67,9 @@ def update_users():
         requests = get_jwt_identity()
         found_user = UserModel.query.filter_by(email=requests['email']).first()
 
+        if found_user.verify_password(body["password"]):
+            return {"error": "Password same as above"}, 409
+
         for key, value in body.items():
             found_user.password_to_hash = value
 
