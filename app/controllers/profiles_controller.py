@@ -29,7 +29,7 @@ def create_profile():
         return jsonify(profile), 201
         
     except KeyError as e:
-        return {"error": str(e)}, 400
+        return {"error": e.args[0]}, 400
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
 
@@ -50,7 +50,7 @@ def get_profiles():
     if serializer == []:
         return {"error": "Nada foi encontrado"}, 404
 
-    return jsonify(serializer), 200
+    return jsonify({"profile": serializer}), 200
 
 
 @jwt_required()
