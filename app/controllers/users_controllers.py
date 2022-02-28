@@ -50,7 +50,7 @@ def login_user():
             return {"message": "Password or email invalid"}, 400
 
         access_token = create_access_token(identity=found_user, expires_delta=timedelta(hours=24))
-        return {"id": found_user.id, "access_token": access_token}, 200
+        return {"access_token": access_token}, 200
     except KeyError as e:
         return {"error": e.args[0]}, 400
     except Exception:
