@@ -5,5 +5,5 @@ bp_movies = Blueprint("movies", __name__, url_prefix="/movies")
 
 
 bp_movies.get("/<title>")(get_movies_by_name)
-bp_movies.get("/<genre>")(get_serie_by_genre)
+bp_movies.get("/<genre>")(get_movies_by_genre)
 
