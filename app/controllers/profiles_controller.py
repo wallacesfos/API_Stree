@@ -29,7 +29,7 @@ def create_profile():
         return jsonify(profile), 201
         
     except KeyError as e:
-        return {"error": str(e)}, 400
+        return {"error": e.args[0]}, 400
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
 
@@ -50,7 +50,7 @@ def get_profiles():
     if serializer == []:
         return {"error": "Nada foi encontrado"}, 404
 
-    return jsonify(serializer), 200
+    return jsonify({"profile": serializer}), 200
 
 
 @jwt_required()
@@ -82,5 +82,29 @@ def update_profile(id):
         }
     except KeyError as e:
         return {"error": "Must contain the keys: 'name'"}, 400
+    except Exception:
+        return {"error": "An unexpected error occurred"}, 400
+
+@jwt_required()
+def delete_profile(id):
+    identity = get_jwt_identity()
+
+    try: 
+        profiles = ProfileModel.query.filter_by(user_id=identity["id"]).all()
+
+        for i in profiles:
+            if id == i.id:
+                profiles = 'True'
+
+        if profiles != 'True':
+            return {"error": "profile not found"}, 404
+
+        profile = ProfileModel.query.filter_by(id=id).first()
+
+        current_app.db.session.delete(profile)
+        current_app.db.session.commit()
+
+        return {},204
+   
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
