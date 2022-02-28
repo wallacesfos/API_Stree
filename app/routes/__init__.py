@@ -7,4 +7,5 @@ def init_app(app: Flask):
     app.register_blueprint(bp_users)
     app.register_blueprint(bp_series)
     app.register_blueprint(bp_profile)
+    
 

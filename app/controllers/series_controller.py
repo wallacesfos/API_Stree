@@ -12,6 +12,7 @@ def create_serie():
         keys = ["name", "image", "description", "seasons", "subtitle", "dubbed", "trailer", "classification", "released_date"]
         
         administer = get_jwt_identity()
+        
 
         if not administer["administer"]:
             raise PermissionError
@@ -53,3 +54,39 @@ def get_serie_by_id(id):
         return {"message": "Serie not found"}, 404
 
     return jsonify(serie),200
+
+@jwt_required()
+def get_serie_by_name():
+    serie_name = request.args.get("name")
+    serie_name = serie_name.title()
+    new_str = ""
+
+    for i in serie_name:
+        if i == "%":
+            new_str += " "
+        else:
+            new_str += i
+            
+    
+    serie = SeriesModel.query.filter_by(name=new_str).first()
+    
+    serie_serializer = {
+        
+        "name": serie.name,
+        "description": serie.description,
+        "image": serie.image,
+        "seasons": serie.seasons,
+        "episodes": [
+            {
+                "season": episode.season, 
+                "link": episode.link, 
+                "episode": episode.episode
+            }for episode in serie.episodes
+        ]
+    }
+
+    if not serie:
+        return {"message": "Serie not found"}, 404
+
+    return jsonify(serie_serializer),200
+    
