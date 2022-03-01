@@ -36,7 +36,6 @@ def create_serie():
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
 
-
 @jwt_required()
 def get_series():
     series = SeriesModel.query.all()
@@ -89,4 +88,38 @@ def get_serie_by_name():
         return {"message": "Serie not found"}, 404
 
     return jsonify(serie_serializer),200
-    
+
+@jwt_required()
+def delete_serie(id):
+
+    try:
+
+        session = current_app.db.session
+
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+
+        serie = SeriesModel.query.filter_by(id=id).first()
+
+        if not serie:
+            return {"error": "Serie not found"}, 404
+
+        episodes = serie.episodes
+        
+        for i in episodes:
+
+            session.delete(i)
+            session.commit()
+
+        session.delete(serie)
+        session.commit()
+
+        return {}, 204
+
+    except PermissionError:
+        return {"error": "Admins only"},400
+
+
+
