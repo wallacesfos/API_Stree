@@ -1,8 +1,11 @@
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
+from http import HTTPStatus
+
 from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
 from app.exc import PermissionError
+
 
 @jwt_required()
 def create_serie():
@@ -89,4 +92,8 @@ def get_serie_by_name():
         return {"message": "Serie not found"}, 404
 
     return jsonify(serie_serializer),200
+
+def series_recents():
+    series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
     
+    return jsonify(series), HTTPStatus.OK
