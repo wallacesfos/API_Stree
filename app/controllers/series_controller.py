@@ -4,7 +4,7 @@ from itsdangerous import json
 from sqlalchemy.orm import Query
 from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
-from app.exc import PermissionError
+from app.exc import NaoEncontradosRegistrosError, PermissionError
 
 @jwt_required()
 def create_serie():
@@ -40,12 +40,27 @@ def create_serie():
 
 @jwt_required()
 def get_series():
-    series = SeriesModel.query.all()
-    
-    if not series:
-        return {"error": "No data found"},404
+    try:
+        title_name = request.args['title']
+        genre_name = request.args['genre']
 
-    return jsonify(series),200
+        if title_name and genre_name:
+            series = find_by_genre(genre_name, title_name) 
+        elif title_name:
+            series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{title_name}%")).all()
+        elif genre_name:
+            series = find_by_genre(genre_name)
+        else:
+            series = SeriesModel.query.all()
+    
+        if not series:
+            raise NaoEncontradosRegistrosError(description="The database is empty.")
+
+        return jsonify(series),200
+
+    except NaoEncontradosRegistrosError as e:
+        return {"error": e.description}, e.code
+        
 
 @jwt_required()
 def get_serie_by_id(id):
@@ -58,12 +73,13 @@ def get_serie_by_id(id):
 
 
 
-@jwt_required()
-def get_series_by_genre(genre_type):
+
+
+def find_by_genre(genre_name, title_name = None):
     from app.models.series_genders_model import series_genders
     from app.models.gender_model import GendersModel
 
-    genre_id = GendersModel.query.filter_by(GendersModel.gender.ilike(f"%{genre_type}%")).first().id
+    genre_id = GendersModel.query.filter_by(GendersModel.gender.ilike(f"%{genre_name}%")).first().id
 
     series: Query = current_app.db.session.query(
         SeriesModel.id,
@@ -79,7 +95,7 @@ def get_series_by_genre(genre_type):
         SeriesModel.classification,
         SeriesModel.released_date
     ).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(
-    series_genders.gender_id == genre_id).all()
+    series_genders.gender_id == genre_id, SeriesModel.name.ilike(f"%{title_name}%")).all()
 
 
     return jsonify([
