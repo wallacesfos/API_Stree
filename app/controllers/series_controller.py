@@ -1,12 +1,16 @@
 from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
-from http import HTTPStatus
 
-
-from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
 from app.exc import PermissionError
+from http import HTTPStatus
+
+from app.models.series_model import SeriesModel
+from app.models.user_model import UserModel
+from app.models.profile_model import ProfileModel
+from app.configs.database import db
+
 
 
 
@@ -69,10 +73,10 @@ def get_serie_by_id(id):
         "seasons": serie.seasons,
         "trailer": serie.trailer,
         "created_at": serie.created_at,
-		"views": serie.views,
+		    "views": serie.views,
         "dubbed": serie.dubbed,
-		"subtitle": serie.subtitle,
-		"classification": serie.classification,
+		    "subtitle": serie.subtitle,
+		    "classification": serie.classification,
         "released_date": serie.released_date,
         "episodes": [
             {
@@ -127,10 +131,10 @@ def get_serie_by_name():
         "seasons": serie.seasons,
         "trailer": serie.trailer,
         "created_at": serie.created_at,
-		"views": serie.views,
+		    "views": serie.views,
         "dubbed": serie.dubbed,
-		"subtitle": serie.subtitle,
-		"classification": serie.classification,
+		    "subtitle": serie.subtitle,
+		    "classification": serie.classification,
         "released_date": serie.released_date,
         "episodes": [
             {
@@ -144,8 +148,26 @@ def get_serie_by_name():
 
 
     return jsonify(serie_serializer),HTTPStatus.OK
+    
+@jwt_required()
+def post_favorite():
+    data = request.get_json()
+    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+    profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+    
+    if not profile in user.profiles:
+        return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+    
+    serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+    profile.series.append(serie)
+    current_app.db.session.add(profile)
+    current_app.db.session.commit()
+    
+    return jsonify({}), HTTPStatus.OK
+
 
 def series_recents():
     series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
     
     return jsonify(series), HTTPStatus.OK
+
