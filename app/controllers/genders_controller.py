@@ -15,10 +15,13 @@ def post_gender():
     if not admin:
         # TODO não entrou no except PermissionError
         # raise PermissionError
+        # Ricardo
         return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
     
     try:
-        #TODO permitiu salvar duplicado, mas a model está ok
+        # TODO permitiu salvar duplicado, mas a model está ok
+        # chequei com 'flask db migrate' e 'flask db upgrade' e não há correções pendentes
+        # Ricardo
         data = request.get_json()
         keys = ["gender"]
         analyze_keys(keys, data)
