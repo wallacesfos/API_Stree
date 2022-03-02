@@ -35,7 +35,7 @@ def create_serie():
         return {"error": "Admins only"},400
 
     except KeyError as e:
-        return {"error": str(e)}
+        return {"error": e.args[0]}
 
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
@@ -50,14 +50,36 @@ def get_series():
 
     return jsonify(series),200
 
+
 @jwt_required()
 def get_serie_by_id(id):
     serie = SeriesModel.query.filter_by(id=id).first()
 
+    serie_serializer = {
+        "id": serie.id,
+        "name": serie.name,
+        "description": serie.description,
+        "image": serie.image,
+        "seasons": serie.seasons,
+        "trailer": serie.trailer,
+        "created_at": serie.created_at,
+		"views": serie.views,
+        "dubbed": serie.dubbed,
+		"subtitle": serie.subtitle,
+		"classification": serie.classification,
+        "episodes": [
+            {
+                "season": episode.season, 
+                "link": episode.link, 
+                "episode": episode.episode
+            }for episode in serie.episodes
+        ]
+    }
+
     if not serie:
         return {"message": "Serie not found"}, 404
 
-    return jsonify(serie),200
+    return jsonify(serie_serializer),200
 
 @jwt_required()
 def post_serie_most_seen(id):
@@ -74,6 +96,7 @@ def post_serie_most_seen(id):
     
     return {}, HTTPStatus.OK
 
+@jwt_required()
 def get_serie_by_name():
     serie_name = request.args.get("name")
     serie_name = serie_name.title()
