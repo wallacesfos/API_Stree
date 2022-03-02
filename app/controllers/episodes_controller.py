@@ -53,6 +53,9 @@ def get_episode_by_serie_id(serie_id):
     serie = SeriesModel.query.filter_by(id=serie_id).first()
     episode = EpisodesModel.query.filter_by(id=serie_id).first()
 
+    if not serie:
+        return {"message": "Episode not found"}, 404
+
     episode_serialize = {
         
         "series_id": episode.series_id,
@@ -71,8 +74,7 @@ def get_episode_by_serie_id(serie_id):
         ]
     }
     
-    if not serie:
-        return {"message": "Episode not found"}, 404
+    
 
     return jsonify(episode_serialize),200
 
