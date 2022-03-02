@@ -72,3 +72,21 @@ def get_episode_by_serie_id(serie_id):
         return {"message": "Episode not found"}, 404
 
     return jsonify(episode_serialize),200
+
+@jwt_required()
+def delete_episode(id):
+    try:
+        session = current_app.db.session
+        administer = get_jwt_identity()
+        
+        if not administer["administer"]:
+            raise PermissionError
+
+        episode = EpisodesModel.query.filter_by(id=id).first()
+        session.delete(episode)
+        session.commit()
+
+        return "", 204
+
+    except PermissionError:
+        return {"error": "Admins only"},400

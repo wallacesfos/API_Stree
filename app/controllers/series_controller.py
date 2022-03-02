@@ -89,4 +89,24 @@ def get_serie_by_name():
         return {"message": "Serie not found"}, 404
 
     return jsonify(serie_serializer),200
+
+
+@jwt_required()
+def delete_serie(id):
+    try:
+        session = current_app.db.session
+        administer = get_jwt_identity()
+        
+        if not administer["administer"]:
+            raise PermissionError
+
+        serie = SeriesModel.query.filter_by(id=id).first()
+        session.delete(serie)
+        session.commit()
+
+        return "", 204
+
+    except PermissionError:
+        return {"error": "Admins only"},400
+
     
