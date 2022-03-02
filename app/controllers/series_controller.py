@@ -14,6 +14,7 @@ def create_serie():
         keys = ["name", "image", "description", "seasons", "subtitle", "dubbed", "trailer", "classification", "released_date"]
         
         administer = get_jwt_identity()
+        
 
         if not administer["administer"]:
             raise PermissionError
@@ -74,7 +75,6 @@ def get_serie_by_id(id):
 
 
 
-
 def find_by_genre(genre_name, title_name = None):
     from app.models.series_genders_model import series_genders
     from app.models.gender_model import GendersModel
@@ -97,19 +97,39 @@ def find_by_genre(genre_name, title_name = None):
     ).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(
     series_genders.gender_id == genre_id, SeriesModel.name.ilike(f"%{title_name}%")).all()
 
+###############SERIALIZAÇÃO COMPLETA
+    # return jsonify([
+    #     {
+    #        "id": serie.id,
+    #        "name": serie.name,
+    #        "image": serie.image,
+    #        "description": serie.description,
+    #        "seasons": serie.seasons,
+    #        "trailer": serie.trailer,
+    #        "created_at": serie.created_at,
+    #        "views": serie.views,
+    #        "dubbed": serie.dubbed,
+    #        "subtitle": serie.subtitle,
+    #        "classification": serie.classification,
+    #        "released_date": serie.released_date
+    #     } for serie in series  ]), 200
 
     return jsonify([
         {
-           "id": serie.id,
            "name": serie.name,
            "image": serie.image,
            "description": serie.description,
            "seasons": serie.seasons,
-           "trailer": serie.trailer,
-           "created_at": serie.created_at,
-           "views": serie.views,
-           "dubbed": serie.dubbed,
-           "subtitle": serie.subtitle,
-           "classification": serie.classification,
-           "released_date": serie.released_date
+           "episodes": [
+               {
+                   "season": episode.season, 
+                    "link": episode.link, 
+                    "episode": episode.episode
+               } for episode in get_episodes(serie.id)
+           ]
         } for serie in series  ]), 200
+
+
+def get_episodes(id: int):
+    from app.models.episodes_model import EpisodesModel
+    return EpisodesModel.query.filter(EpisodesModel.series_id == id).all()

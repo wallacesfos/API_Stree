@@ -26,8 +26,8 @@ def create_register():
             "msg": "user created successfully"
         }, 201
     
-    except KeyError as e:
-        return {'error': str(e)}, 400
+    except KeyError as error:
+        return {'error': error.args[0]}, 400
     except exc.IntegrityError:
         return {"error": "Email already exists"}, 409
     except Exception:
@@ -45,14 +45,14 @@ def login_user():
 
         found_user = UserModel.query.filter_by(email=body['email']).first()
 
+
         if not found_user or not found_user.verify_password(password):
             return {"message": "Password or email invalid"}, 400
 
         access_token = create_access_token(identity=found_user, expires_delta=timedelta(hours=24))
-
         return {"access_token": access_token}, 200
     except KeyError as e:
-        return {"error": str(e)}, 400
+        return {"error": e.args[0]}, 400
     except Exception:
         return {"error": "An unexpected error occurred"}, 400        
 
@@ -67,6 +67,9 @@ def update_users():
         requests = get_jwt_identity()
         found_user = UserModel.query.filter_by(email=requests['email']).first()
 
+        if found_user.verify_password(body["password"]):
+            return {"error": "Password same as above"}, 409
+
         for key, value in body.items():
             found_user.password_to_hash = value
 
@@ -75,7 +78,7 @@ def update_users():
 
         return {}, 204
     except KeyError as e:
-        return {"error": str(e)}, 400
+        return {"error": e.args[0]}, 400
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
 
@@ -88,45 +91,5 @@ def delete_user():
     current_app.db.session.commit()
 
     return {}, 204
-
-
-
-@jwt_required()
-def update_users_admin():
-    body = request.get_json()
-    requests = get_jwt_identity()
-    
-    try:
-        if requests['administer'] == False:
-            raise PermissionError('Permission denied')
-
-        found_user = UserModel.query.filter_by(id=body['id']).first()
-
-        if not found_user:
-            return {"message": "User not found"}, 404
-
-        for key, value in body.items():
-            if key == 'password':
-                found_user.password_to_hash = value
-            else:
-                setattr(found_user, key, value)
-
-        current_app.db.session.add(found_user)
-        current_app.db.session.commit()
-        
-        return {
-            "id": found_user.id,
-            "email": found_user.email
-        }
-    
-    except PermissionError as e:
-        return {"error": str(e)}, 400
-    except KeyError:
-        return {"error": "Need to pass the ID"}, 400
-    except exc.StatementError:
-        return {"error": "id: integer, email: string, administer: Boolean"}
-    except Exception:
-        return {"error": "An unexpected error occurred"}, 400
-
 
 
