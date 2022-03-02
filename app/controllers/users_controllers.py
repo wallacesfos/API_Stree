@@ -1,9 +1,13 @@
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash
 from app.exc import PermissionError
 from app.models.user_model import UserModel
 from flask import request, current_app
+from secrets import token_urlsafe
 from sqlalchemy import exc
 from datetime import timedelta
+from flask_mail import Message
+from os import getenv
 from app import utils
 
 
@@ -92,4 +96,32 @@ def delete_user():
 
     return {}, 204
 
+def send_email_recovery():
+    email = request.get_json()['email']
+    link = f"{request.base_url}?mail={email}"
 
+    msg = Message(
+        subject = 'Recover Password',
+        sender = getenv('MAIL_USERNAME'),
+        recipients = [email],
+        body = f'''
+                Criação de senha temporária
+            Click no link abaixo para a criação de uma senha temporária:
+            {link}
+        '''
+    )
+
+    current_app.mail.send(msg)
+    return '', 200
+
+def create_new_password():
+    mail = request.args['mail']
+    found_user: UserModel = UserModel.query.filter_by(email=mail).first()
+    
+    new_password = token_urlsafe(8)
+    found_user.password_to_hash = new_password
+
+    current_app.db.session.add(found_user)
+    current_app.db.session.commit()
+
+    return {'msg': f'you temporary password is: {new_password}'}, 200
