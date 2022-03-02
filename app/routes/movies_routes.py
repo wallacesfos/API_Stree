@@ -7,4 +7,4 @@ bp_movies = Blueprint("movies", __name__, url_prefix="/movies")
 
 bp_movies.get("")(get_movies)
 bp_movies.post("")(create_movie)
-bp_movies.patch()(update_movie)
+bp_movies.patch("/<int:id>")(update_movie)
