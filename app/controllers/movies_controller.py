@@ -62,18 +62,26 @@ def create_movie():
 @jwt_required()
 def get_movies():
     try:
+        profile: ProfileModel = get_jwt_identity()
+        classification = profile.kids
 
         title_name = request.args['title']
         genre_name = request.args['genre']
 
         if title_name and genre_name:
-            movies = find_by_genre(genre_name, title_name) 
+            movies = find_by_genre(classification, genre_name, title_name) 
         elif title_name:
-            movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{title_name}%")).all()
+            if classification:
+                movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{title_name}%"), MoviesModel.classification < 16).all()
+            else:
+                movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{title_name}%")).all()
         elif genre_name:
-            movies = find_by_genre(genre_name)
+            movies = find_by_genre(classification, genre_name)
         else:
-            movies = MoviesModel.query.all()
+            if classification:
+                movies = MoviesModel.query.filter(MoviesModel.classification < 16).all()
+            else:
+                movies = MoviesModel.query.all()
     
         if not movies:
             raise NaoEncontradosRegistrosError(description="The database is empty.")
@@ -85,29 +93,48 @@ def get_movies():
 
 
 
-def find_by_genre(genre_name, title_name = None):
+def find_by_genre(classification, genre_name, title_name = None):
     from app.models.movies_genders_model import movies_genders
     from app.models.gender_model import GendersModel
 
     genre_id = GendersModel.query.filter_by(GendersModel.gender.ilike(f"%{genre_name}%")).first().id
-
-    movies: Query = current_app.db.session.query(
-            MoviesModel.id,
-            MoviesModel.name,
-            MoviesModel.image,
-            MoviesModel.description,
-            MoviesModel.subtitle,
-            MoviesModel.dubbed,
-            MoviesModel.views,
-            MoviesModel.duration,
-            MoviesModel.created_at,
-            MoviesModel.updated_at,
-            MoviesModel.link,
-            MoviesModel.classification,
-            MoviesModel.released_date,
-            MoviesModel.trailers
-        ).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(
-        movies_genders.gender_id == genre_id, MoviesModel.name.ilike(f"%{title_name}%")).all()
+    
+    if classification:
+        movies: Query = current_app.db.session.query(
+                MoviesModel.id,
+                MoviesModel.name,
+                MoviesModel.image,
+                MoviesModel.description,
+                MoviesModel.subtitle,
+                MoviesModel.dubbed,
+                MoviesModel.views,
+                MoviesModel.duration,
+                MoviesModel.created_at,
+                MoviesModel.updated_at,
+                MoviesModel.link,
+                MoviesModel.classification,
+                MoviesModel.released_date,
+                MoviesModel.trailers
+            ).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(
+            movies_genders.gender_id == genre_id, MoviesModel.name.ilike(f"%{title_name}%"), MoviesModel.classification < 16).all()
+    else:
+         movies: Query = current_app.db.session.query(
+                MoviesModel.id,
+                MoviesModel.name,
+                MoviesModel.image,
+                MoviesModel.description,
+                MoviesModel.subtitle,
+                MoviesModel.dubbed,
+                MoviesModel.views,
+                MoviesModel.duration,
+                MoviesModel.created_at,
+                MoviesModel.updated_at,
+                MoviesModel.link,
+                MoviesModel.classification,
+                MoviesModel.released_date,
+                MoviesModel.trailers
+            ).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(
+            movies_genders.gender_id == genre_id, MoviesModel.name.ilike(f"%{title_name}%")).all()
 
     return [{
         "id" : movies.id,
