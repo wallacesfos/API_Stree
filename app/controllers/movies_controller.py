@@ -93,6 +93,29 @@ def get_movies():
 
 
 
+@jwt_required()
+def update_movie(id: int):
+    movie = MoviesModel.query.get(id)
+    
+    if not movie:
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+    
+    movie.views += 1
+    
+    current_app.db.session.add(movie)
+    current_app.db.session.commit()
+
+    
+    return {}, HTTPStatus.NO_CONTENT
+
+
+
+
+
+
+
+
+
 def find_by_genre(classification, genre_name, title_name = None):
     from app.models.movies_genders_model import movies_genders
     from app.models.gender_model import GendersModel
