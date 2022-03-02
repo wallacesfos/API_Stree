@@ -18,5 +18,5 @@ class GendersModel(db.Model):
     id = Column(Integer, primary_key=True)
     gender = Column(String, nullable=False)
     
-    movie = relationship(MoviesModel, secondary=movies_genders, backref=backref('genders'))
-    serie = relationship(SeriesModel, secondary=series_genders, backref=backref('genders'))
+    movies = relationship(MoviesModel, secondary=movies_genders, backref=backref('genders'))
+    series = relationship(SeriesModel, secondary=series_genders, backref=backref('genders'))
