@@ -43,7 +43,6 @@ def create_serie():
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
-
 @jwt_required()
 def get_series():
     try:
@@ -125,6 +124,34 @@ def patch_serie_most_seen(id):
     return {}, HTTPStatus.NO_CONTENT
 
 
+@jwt_required()
+def delete_serie(id):
+    try:
+        session = current_app.db.session
+
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+
+        serie = SeriesModel.query.filter_by(id=id).first()
+
+        if not serie:
+            return {"error": "Serie not found"}, 404
+
+        episodes = serie.episodes
+        
+        for i in episodes:
+            session.delete(i)
+            session.commit()
+
+        session.delete(serie)
+        session.commit()
+
+        return {}, 204
+
+    except PermissionError:
+        return {"error": "Admins only"},400
 
 
 def find_by_genre(classification, genre_name, title_name = None):
@@ -182,6 +209,8 @@ def find_by_genre(classification, genre_name, title_name = None):
         } for serie in series ]
 
 
+   
+  
     
 @jwt_required()
 def series_recents():
@@ -209,4 +238,5 @@ def post_favorite():
         return {"error": e.description}, HTTPStatus.BAD_REQUEST
     
     return jsonify({}), HTTPStatus.NO_CONTENT
+
 
