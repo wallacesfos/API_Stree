@@ -55,6 +55,9 @@ def get_series():
 def get_serie_by_id(id):
     serie = SeriesModel.query.filter_by(id=id).first()
 
+    if not serie:
+        return {"message": "Serie not found"}, 404
+
     serie_serializer = {
         "id": serie.id,
         "name": serie.name,
@@ -67,6 +70,7 @@ def get_serie_by_id(id):
         "dubbed": serie.dubbed,
 		"subtitle": serie.subtitle,
 		"classification": serie.classification,
+        "released_date": serie.released_date,
         "episodes": [
             {
                 "season": episode.season, 
@@ -76,13 +80,11 @@ def get_serie_by_id(id):
         ]
     }
 
-    if not serie:
-        return {"message": "Serie not found"}, 404
-
     return jsonify(serie_serializer),200
 
+
 @jwt_required()
-def post_serie_most_seen(id):
+def patch_serie_most_seen(id):
     serie = SeriesModel.query.get(id)
     
     if not serie:
@@ -94,7 +96,7 @@ def post_serie_most_seen(id):
     current_app.db.session.commit()
 
     
-    return {}, HTTPStatus.OK
+    return {}, HTTPStatus.NO_CONTENT
 
 @jwt_required()
 def get_serie_by_name():
