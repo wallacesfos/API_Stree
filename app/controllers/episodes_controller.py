@@ -32,22 +32,22 @@ def create_episode():
         return jsonify(episode), HTTPStatus.CREATED
 
     except PermissionError:
-        return {"error": "Admins only"},400
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
     except KeyError as e:
         return {"error": str(e)}
 
     except Exception:
-        return {"error": "An unexpected error occurred"}, 400
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
 @jwt_required()
 def get_episodes():
     episodes = EpisodesModel.query.all()
     
     if not episodes:
-        return {"error": "No data found"},404
+        return {"error": "No data found"}, HTTPStatus.NOT_FOUND
 
-    return jsonify(episodes),200
+    return jsonify(episodes), HTTPStatus.OK
 
 @jwt_required()
 def get_episode_by_serie_id(serie_id):
@@ -56,7 +56,7 @@ def get_episode_by_serie_id(serie_id):
         episode = EpisodesModel.query.filter_by(id=serie_id).first()
 
         if not serie:
-            return {"message": "Episode not found"}, 404
+            return {"message": "Episode not found"}, HTTPStatus.NOT_FOUND
 
         episode_serialize = {
             
@@ -79,6 +79,25 @@ def get_episode_by_serie_id(serie_id):
     except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
 
+
+@jwt_required()
+def delete_episode(id):
+    try:
+        session = current_app.db.session
+        administer = get_jwt_identity()
+        
+        if not administer["administer"]:
+            raise PermissionError
+
+        episode = EpisodesModel.query.filter_by(id=id).first()
+        session.delete(episode)
+        session.commit()
+
+        return "", HTTPStatus.NO_CONTENT
+
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+
    
 
 def get_episode_by_id(id):
@@ -88,3 +107,4 @@ def get_episode_by_id(id):
         return {"msg": "Episode not found"}, HTTPStatus.NOT_FOUND
     
     return jsonify(episode), HTTPStatus.OK
+

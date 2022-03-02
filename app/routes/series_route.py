@@ -14,3 +14,4 @@ bp_series.post('/favorite')(post_favorite)
 bp_series.delete("/<int:id>")(delete_serie)
 
 
+
