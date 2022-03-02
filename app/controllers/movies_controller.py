@@ -1,6 +1,7 @@
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
 from sqlalchemy.orm import Query
+from app import exc
 from app.utils import analyze_keys
 from app.exc import NaoEncontradosRegistrosError, PermissionError
 from http import HTTPStatus
@@ -63,7 +64,7 @@ def create_movie():
 def get_movies():
     try:
         profile: ProfileModel = get_jwt_identity()
-        classification = profile.kids
+        classification = profile["kids"]
 
         title_name = request.args['title']
         genre_name = request.args['genre']
@@ -95,20 +96,47 @@ def get_movies():
 
 @jwt_required()
 def update_movie(id: int):
-    movie = MoviesModel.query.get(id)
-    
-    if not movie:
-        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
-    
-    movie.views += 1
-    
-    current_app.db.session.add(movie)
-    current_app.db.session.commit()
+    try:
+        movie = MoviesModel.query.get(id)
+        
+        if not movie:
+            raise NaoEncontradosRegistrosError
+        
+        movie.views += 1
+        
+        current_app.db.session.add(movie)
+        current_app.db.session.commit()
 
+        
+        return {}, HTTPStatus.NO_CONTENT
+
+    except NaoEncontradosRegistrosError:
+        return {"error": "Movie not found"}, HTTPStatus.NOT_FOUND
+
+
+@jwt_required()
+def delete_movie(id: int):
+    try:
+        user: UserModel = get_jwt_identity()
+
+        if not user['administer']:
+            raise PermissionError
+
+        movie = MoviesModel.query.filter(id=id).one_or_none()
+        if not movie:
+            raise NaoEncontradosRegistrosError(discription="Movie not found")
+
+        current_app.db.session.delete(movie)
+        current_app.db.session.commit()
+
+        return {}, HTTPStatus.NO_CONTENT
     
-    return {}, HTTPStatus.NO_CONTENT
 
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
+    except NaoEncontradosRegistrosError as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
 
 
 
