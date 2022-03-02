@@ -1,8 +1,12 @@
+from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
+
 from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
 from app.exc import PermissionError
+from app.configs.database import db
+
 
 @jwt_required()
 def create_serie():
@@ -56,6 +60,20 @@ def get_serie_by_id(id):
     return jsonify(serie),200
 
 @jwt_required()
+def post_serie_most_seen(id):
+    serie = SeriesModel.query.get(id)
+    
+    if not serie:
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+    
+    serie.views += 1
+    
+    current_app.db.session.add(serie)
+    current_app.db.session.commit()
+
+    
+    return {}, HTTPStatus.OK
+
 def get_serie_by_name():
     serie_name = request.args.get("name")
     serie_name = serie_name.title()
