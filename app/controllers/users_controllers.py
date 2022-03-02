@@ -98,7 +98,7 @@ def delete_user():
 
 def send_email_recovery():
     email = request.get_json()['email']
-    link = f"{request.base_url}?mail={email}"
+    link = f"{request.base_url}/{utils.recovery_hash}?mail={email}"
 
     msg = Message(
         subject = 'Recover Password',

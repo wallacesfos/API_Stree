@@ -1,3 +1,4 @@
+from secrets import token_urlsafe
 
 def analyze_keys(keys, request):
     
@@ -11,6 +12,5 @@ def analyze_keys(keys, request):
     except KeyError:
         raise KeyError(f"Must contain the keys: {keys}")
 
-
-
+recovery_hash =  token_urlsafe(20)
 
