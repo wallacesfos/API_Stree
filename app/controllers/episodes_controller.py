@@ -1,9 +1,12 @@
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
-from app.models.episodes_model import EpisodesModel
-from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
 from app.exc import PermissionError
+from http import HTTPStatus
+
+from app.models.episodes_model import EpisodesModel
+from app.models.series_model import SeriesModel
+from sqlalchemy.exc import NoResultFound
 
 @jwt_required()
 def create_episode():
@@ -50,6 +53,9 @@ def get_episode_by_serie_id(serie_id):
     serie = SeriesModel.query.filter_by(id=serie_id).first()
     episode = EpisodesModel.query.filter_by(id=serie_id).first()
 
+    if not serie:
+        return {"message": "Episode not found"}, 404
+
     episode_serialize = {
         
         "series_id": episode.series_id,
@@ -68,7 +74,14 @@ def get_episode_by_serie_id(serie_id):
         ]
     }
     
-    if not serie:
-        return {"message": "Episode not found"}, 404
+    
 
     return jsonify(episode_serialize),200
+
+def get_episode_by_id(id):
+    try:
+        episode = EpisodesModel.query.filter_by(id=id).one()
+    except NoResultFound:
+        return {"msg": "Episode not found"}, HTTPStatus.NOT_FOUND
+    
+    return jsonify(episode), HTTPStatus.OK
