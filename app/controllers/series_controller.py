@@ -47,17 +47,26 @@ def create_serie():
 @jwt_required()
 def get_series():
     try:
+        profile: ProfileModel = get_jwt_identity()
+        classification = profile.kids
+
         title_name = request.args['title']
         genre_name = request.args['genre']
 
         if title_name and genre_name:
-            series = find_by_genre(genre_name, title_name) 
+            series = find_by_genre(classification, genre_name, title_name) 
         elif title_name:
-            series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{title_name}%")).all()
+            if classification:
+                series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{title_name}%"), SeriesModel.classification <= 16).all()
+            else:
+                series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{title_name}%")).all()
         elif genre_name:
-            series = find_by_genre(genre_name)
+            series = find_by_genre(classification, genre_name)
         else:
-            series = SeriesModel.query.all()
+            if classification:
+                series = SeriesModel.query.filter(SeriesModel.classification < 16).all()
+            else:
+                series = SeriesModel.query.all()
     
         if not series:
             raise NaoEncontradosRegistrosError(description="The database is empty.")
@@ -118,27 +127,44 @@ def patch_serie_most_seen(id):
 
 
 
-def find_by_genre(genre_name, title_name = None):
+def find_by_genre(classification, genre_name, title_name = None):
     from app.models.series_genders_model import series_genders
     from app.models.gender_model import GendersModel
 
     genre_id = GendersModel.query.filter_by(GendersModel.gender.ilike(f"%{genre_name}%")).first().id
-
-    series: Query = current_app.db.session.query(
-        SeriesModel.id,
-        SeriesModel.name,
-        SeriesModel.image,
-        SeriesModel.description,
-        SeriesModel.seasons,
-        SeriesModel.trailer,
-        SeriesModel.created_at,
-        SeriesModel.views,
-        SeriesModel.dubbed,
-        SeriesModel.subtitle,
-        SeriesModel.classification,
-        SeriesModel.released_date
+    
+    if classification:
+        series: Query = current_app.db.session.query(
+            SeriesModel.id,
+            SeriesModel.name,
+            SeriesModel.image,
+            SeriesModel.description,
+            SeriesModel.seasons,
+            SeriesModel.trailer,
+            SeriesModel.created_at,
+            SeriesModel.views,
+            SeriesModel.dubbed,
+            SeriesModel.subtitle,
+            SeriesModel.classification,
+            SeriesModel.released_date
     ).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(
-    series_genders.gender_id == genre_id, SeriesModel.name.ilike(f"%{title_name}%")).all()
+    series_genders.gender_id == genre_id, SeriesModel.name.ilike(f"%{title_name}%"), SeriesModel.classification <= 16).all()
+    else:
+        series: Query = current_app.db.session.query(
+            SeriesModel.id,
+            SeriesModel.name,
+            SeriesModel.image,
+            SeriesModel.description,
+            SeriesModel.seasons,
+            SeriesModel.trailer,
+            SeriesModel.created_at,
+            SeriesModel.views,
+            SeriesModel.dubbed,
+            SeriesModel.subtitle,
+            SeriesModel.classification,
+            SeriesModel.released_date
+        ).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(
+        series_genders.gender_id == genre_id, SeriesModel.name.ilike(f"%{title_name}%")).all()
 
     return [{
            "id": serie.id,
@@ -153,7 +179,7 @@ def find_by_genre(genre_name, title_name = None):
            "subtitle": serie.subtitle,
            "classification": serie.classification,
            "released_date": serie.released_date
-        } for serie in series  ]
+        } for serie in series ]
 
 
     
