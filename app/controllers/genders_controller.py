@@ -39,3 +39,13 @@ def post_gender():
 
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+
+@jwt_required()
+def get_gender(id):
+    
+    gender = GendersModel.query.filter_by(id=id).first()
+    
+    if not gender:
+        return {"error": "No gender found"}, HTTPStatus.NOT_FOUND
+
+    return jsonify(gender), HTTPStatus.OK
