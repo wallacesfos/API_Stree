@@ -7,6 +7,7 @@ from app.utils import analyze_keys
 from app.models.gender_model import GendersModel
 from app.configs.database import db
 from app.exc import PermissionError
+from sqlalchemy.exc import IntegrityError
 
 
 @jwt_required()
@@ -36,6 +37,8 @@ def post_gender():
         return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
     except KeyError as e:
         return {"error": str(e)}, HTTPStatus.BAD_REQUEST
+    except IntegrityError:
+        return {"error": "gender already exists"}, HTTPStatus.CONFLICT
 
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
@@ -71,3 +74,27 @@ def delete_gender(id):
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
     return {}, HTTPStatus.NO_CONTENT
+
+@jwt_required()
+def patch_gender(id): 
+    try:
+        admin = get_jwt_identity()["administer"]
+        if not admin:
+            return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
+        
+        data = request.get_json()
+        keys = ["gender"]
+        analyze_keys(keys, data)
+        
+        gender = GendersModel.query.filter_by(id=id).first()
+        gender.gender = data["gender"]
+        
+        current_app.db.session.add(gender)
+        current_app.db.session.commit()
+    
+    except KeyError as e:
+        return {"error": str(e)}, HTTPStatus.BAD_REQUEST
+    except IntegrityError:
+        return {"error": "gender already exists"}, HTTPStatus.CONFLICT
+    
+    return {"msg": f"Patch gender ok, id {id}"}, HTTPStatus.OK
