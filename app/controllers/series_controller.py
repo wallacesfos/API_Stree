@@ -1,10 +1,15 @@
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
-from itsdangerous import json
 from sqlalchemy.orm import Query
 from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
 from app.exc import NaoEncontradosRegistrosError, PermissionError
+from http import HTTPStatus
+
+from app.models.series_model import SeriesModel
+from app.models.user_model import UserModel
+from app.models.profile_model import ProfileModel
+
 
 @jwt_required()
 def create_serie():
@@ -27,16 +32,16 @@ def create_serie():
         session.add(serie)
         session.commit()
 
-        return jsonify(serie), 201
+        return jsonify(serie), HTTPStatus.CREATED
 
     except PermissionError:
-        return {"error": "Admins only"},400
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
     except KeyError as e:
-        return {"error": str(e)}
+        return {"error": e.args[0]}
 
     except Exception:
-        return {"error": "An unexpected error occurred"}, 400
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
 
 @jwt_required()
@@ -68,9 +73,47 @@ def get_serie_by_id(id):
     serie = SeriesModel.query.filter_by(id=id).first()
 
     if not serie:
-        return {"message": "Serie not found"}, 404
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
 
-    return jsonify(serie),200
+    serie_serializer = {
+        "id": serie.id,
+        "name": serie.name,
+        "description": serie.description,
+        "image": serie.image,
+        "seasons": serie.seasons,
+        "trailer": serie.trailer,
+        "created_at": serie.created_at,
+		"views": serie.views,
+        "dubbed": serie.dubbed,
+		"subtitle": serie.subtitle,
+		"classification": serie.classification,
+        "released_date": serie.released_date,
+        "episodes": [
+            {
+                "season": episode.season, 
+                "link": episode.link, 
+                "episode": episode.episode
+            }for episode in serie.episodes
+        ]
+    }
+
+    return jsonify(serie_serializer), HTTPStatus.OK
+
+
+@jwt_required()
+def patch_serie_most_seen(id):
+    serie = SeriesModel.query.get(id)
+    
+    if not serie:
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+    
+    serie.views += 1
+    
+    current_app.db.session.add(serie)
+    current_app.db.session.commit()
+
+    
+    return {}, HTTPStatus.NO_CONTENT
 
 
 
@@ -112,9 +155,32 @@ def find_by_genre(genre_name, title_name = None):
            "released_date": serie.released_date
         } for serie in series  ]
 
+
     
+@jwt_required()
+def series_recents():
+    series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
+    
+    return jsonify(series), HTTPStatus.OK
 
+    
+@jwt_required()
+def post_favorite():
+    try:
+        data = request.get_json()
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+        
+        if not profile in user.profiles:
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+        
+        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+        profile.series.append(serie)
+        current_app.db.session.add(profile)
+        current_app.db.session.commit()
 
-def get_episodes(id: int):
-    from app.models.episodes_model import EpisodesModel
-    return EpisodesModel.query.filter(EpisodesModel.series_id == id).all()
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.BAD_REQUEST
+    
+    return jsonify({}), HTTPStatus.NO_CONTENT
+
