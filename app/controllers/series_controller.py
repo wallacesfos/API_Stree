@@ -1,10 +1,7 @@
 from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
-from http import HTTPStatus
 
-
-from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
 from app.exc import PermissionError
 from http import HTTPStatus
@@ -76,10 +73,10 @@ def get_serie_by_id(id):
         "seasons": serie.seasons,
         "trailer": serie.trailer,
         "created_at": serie.created_at,
-		"views": serie.views,
+		    "views": serie.views,
         "dubbed": serie.dubbed,
-		"subtitle": serie.subtitle,
-		"classification": serie.classification,
+		    "subtitle": serie.subtitle,
+		    "classification": serie.classification,
         "released_date": serie.released_date,
         "episodes": [
             {
@@ -134,10 +131,10 @@ def get_serie_by_name():
         "seasons": serie.seasons,
         "trailer": serie.trailer,
         "created_at": serie.created_at,
-		"views": serie.views,
+		    "views": serie.views,
         "dubbed": serie.dubbed,
-		"subtitle": serie.subtitle,
-		"classification": serie.classification,
+		    "subtitle": serie.subtitle,
+		    "classification": serie.classification,
         "released_date": serie.released_date,
         "episodes": [
             {
@@ -151,7 +148,8 @@ def get_serie_by_name():
 
 
     return jsonify(serie_serializer),HTTPStatus.OK
-
+    
+@jwt_required()
 def series_recents():
     series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
     
@@ -177,3 +175,4 @@ def post_favorite():
         return {"error": e.description}, HTTPStatus.BAD_REQUEST
     
     return jsonify({}), HTTPStatus.NO_CONTENT
+
