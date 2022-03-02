@@ -7,7 +7,7 @@ from http import HTTPStatus
 from app.models.series_model import SeriesModel
 from app.utils import analyze_keys
 from app.exc import PermissionError
-from app.configs.database import db
+
 
 
 
@@ -32,16 +32,16 @@ def create_serie():
         session.add(serie)
         session.commit()
 
-        return jsonify(serie), 201
+        return jsonify(serie), HTTPStatus.CREATED
 
     except PermissionError:
-        return {"error": "Admins only"},400
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
     except KeyError as e:
         return {"error": e.args[0]}
 
     except Exception:
-        return {"error": "An unexpected error occurred"}, 400
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
 
 @jwt_required()
@@ -49,9 +49,9 @@ def get_series():
     series = SeriesModel.query.all()
     
     if not series:
-        return {"error": "No data found"},404
+        return {"error": "No data found"}, HTTPStatus.NOT_FOUND
 
-    return jsonify(series),200
+    return jsonify(series),HTTPStatus.OK
 
 
 @jwt_required()
@@ -59,7 +59,7 @@ def get_serie_by_id(id):
     serie = SeriesModel.query.filter_by(id=id).first()
 
     if not serie:
-        return {"message": "Serie not found"}, 404
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
 
     serie_serializer = {
         "id": serie.id,
@@ -83,7 +83,7 @@ def get_serie_by_id(id):
         ]
     }
 
-    return jsonify(serie_serializer),200
+    return jsonify(serie_serializer), HTTPStatus.OK
 
 
 @jwt_required()
@@ -116,6 +116,9 @@ def get_serie_by_name():
     
     serie = SeriesModel.query.filter_by(name=new_str).first()
     
+    if not serie:
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+
     serie_serializer = {
         "id": serie.id,
         "name": serie.name,
@@ -138,10 +141,9 @@ def get_serie_by_name():
         ]
     }
 
-    if not serie:
-        return {"message": "Serie not found"}, 404
 
-    return jsonify(serie_serializer),200
+
+    return jsonify(serie_serializer),HTTPStatus.OK
 
 def series_recents():
     series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
