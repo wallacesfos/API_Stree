@@ -10,8 +10,49 @@ from app.models.user_model import UserModel
 from app.models.profile_model import ProfileModel
 
 
+@jwt_required()
+def create_movie():
+    try:
+        session = current_app.db.session
+        data = request.get_json()
+        keys = [
+            "id",
+            "name",
+            "image",
+            "description",
+            "subtitle",
+            "dubbed",
+            "views",
+            "duration",
+            "created_at",
+            "updated_at",
+            "link",
+            "classification",
+            "released_date",
+            "trailers"]
+        
+        administer = get_jwt_identity()
+        if not administer["administer"]:
+            raise PermissionError
 
+        analyze_keys(keys, data)
+        data["name"] = data["name"].title()
 
+        movie = MoviesModel(**data)
+
+        session.add(movie)
+        session.commit()
+
+        return jsonify(movie), HTTPStatus.CREATED
+
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+
+    except KeyError as e:
+        return {"error": e.args[0]}
+
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
 
 
@@ -21,6 +62,7 @@ from app.models.profile_model import ProfileModel
 @jwt_required()
 def get_movies():
     try:
+
         title_name = request.args['title']
         genre_name = request.args['genre']
 
