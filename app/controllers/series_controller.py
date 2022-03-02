@@ -114,11 +114,18 @@ def get_serie_by_name():
     serie = SeriesModel.query.filter_by(name=new_str).first()
     
     serie_serializer = {
-        
+        "id": serie.id,
         "name": serie.name,
         "description": serie.description,
         "image": serie.image,
         "seasons": serie.seasons,
+        "trailer": serie.trailer,
+        "created_at": serie.created_at,
+		"views": serie.views,
+        "dubbed": serie.dubbed,
+		"subtitle": serie.subtitle,
+		"classification": serie.classification,
+        "released_date": serie.released_date,
         "episodes": [
             {
                 "season": episode.season, 

@@ -7,5 +7,5 @@ bp_series.post("")(create_serie)
 bp_series.get("")(get_series)
 bp_series.get("/<int:id>")(get_serie_by_id)
 bp_series.patch("/most_seen/<int:id>")(patch_serie_most_seen)
-bp_series.get("/nome_da_serie")(get_serie_by_name)
+bp_series.get("/")(get_serie_by_name)
 
