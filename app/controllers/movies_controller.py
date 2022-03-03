@@ -12,8 +12,7 @@ from app.utils import find_by_genre
 @jwt_required()
 def delete_movie(id: int):
     try:
-        user: UserModel = get_jwt_identity()
-        if not user['administer']:
+        if not get_jwt_identity()['administer']:
             raise PermissionError
 
         movie = MoviesModel.query.filter(id=id).one_or_404(discription="Movie not found")
