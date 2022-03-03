@@ -1,5 +1,4 @@
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from app.exc import PermissionError
 from app.models.user_model import UserModel
 from flask import request, current_app
 from sqlalchemy import exc
@@ -91,5 +90,3 @@ def delete_user():
     current_app.db.session.commit()
 
     return {}, 204
-
-
