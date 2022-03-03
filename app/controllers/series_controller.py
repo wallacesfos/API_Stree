@@ -202,28 +202,32 @@ def post_favorite():
         current_app.db.session.commit()
 
     except Exception as e:
-        return {"error": e.description}, HTTPStatus.BAD_REQUEST
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
     
     return jsonify({}), HTTPStatus.NO_CONTENT
 
 @jwt_required()
 def remove_favorite():
-    data = request.get_json()
-    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-    profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+    try:
+        data = request.get_json()
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+        
+        if not profile in user.profiles:
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+        
+        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+        
+        if not serie in profile.series:
+            return jsonify({"error": "Serie not found in profile"}), HTTPStatus.NOT_FOUND
+        
+        remove = profile.series.index(serie)
+        profile.series.pop(remove)
+        current_app.db.session.add(profile)
+        current_app.db.session.commit()
     
-    if not profile in user.profiles:
-        return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
     
-    serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
-    
-    if not serie in profile.series:
-        return jsonify({"error": "Serie not found in profile"}), HTTPStatus.NOT_FOUND
-    
-    remove = profile.series.index(serie)
-    profile.series.pop(remove)
-    current_app.db.session.add(profile)
-    current_app.db.session.commit()
-    
-    return jsonify({}), HTTPStatus.OK
+    return jsonify({}), HTTPStatus.NO_CONTENT
 
