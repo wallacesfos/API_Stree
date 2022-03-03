@@ -20,11 +20,36 @@ def post_favorite():
         if not profile in user.profiles:
             return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
         
-        serie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
-        profile.series.append(serie)
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+        profile.movies.append(movie)
         current_app.db.session.add(profile)
         current_app.db.session.commit()
 
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+    
+    return jsonify({}), HTTPStatus.NO_CONTENT
+
+
+@jwt_required()
+def remove_favorite():
+    try:
+        data = request.get_json()
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+        
+        if not profile in user.profiles:
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+        
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+
+        if not movie in profile.movies:
+            return jsonify({"error": "Serie not found in profile"}), HTTPStatus.NOT_FOUND
+        
+        profile.movies.remove(movie)
+        current_app.db.session.add(profile)
+        current_app.db.session.commit()
+    
     except Exception as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
     
