@@ -36,7 +36,7 @@ def get_most_recent_movies():
         } for m in movies]
     
     released_date_list.sort(key=itemgetter(1['diffdays']))
-    print('>>>>'*11, released_date_list)
+
     quantity = 5 if len(movies) >= 5 else len(movies)
     most_recent = []
 
