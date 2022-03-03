@@ -210,9 +210,9 @@ def post_favorite():
 
 
 @jwt_required()
-def get_appropriated_series(user_id: int):
+def get_appropriated_series(profile_id: int):
     try:
-        profile = ProfileModel.query.filter(id = user_id).first_or_404("Profile not found")
+        profile = ProfileModel.query.filter(id = profile_id).first_or_404("Profile not found")
 
         if profile.kids:
             series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
