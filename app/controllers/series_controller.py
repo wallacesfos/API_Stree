@@ -216,7 +216,7 @@ def get_series_by_genre(profile_id: int):
 
         request_genre = request.args.get('genre', None)
         if request_genre:
-            series = find_by_genre
+            series = find_by_genre(request_genre)
 
         if profile.kids and request_genre:
             filtered_list = [serie for serie in series if serie.classification <= 13]
