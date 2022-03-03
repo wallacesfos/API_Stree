@@ -44,6 +44,13 @@ def get_gender(id):
 
     return jsonify(gender), HTTPStatus.OK
 
+@jwt_required()
+def get_genders():
+    
+    gender = GendersModel.query.order_by(GendersModel.gender.asc()).all()
+    
+    return jsonify(gender), HTTPStatus.OK
+
 
 @jwt_required()
 def delete_gender(id):
@@ -71,3 +78,4 @@ def delete_gender(id):
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
     return {}, HTTPStatus.NO_CONTENT
+
