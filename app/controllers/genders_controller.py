@@ -1,4 +1,3 @@
-from curses.ascii import HT
 from http import HTTPStatus
 from flask import request, current_app, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -12,17 +11,12 @@ from sqlalchemy.exc import IntegrityError
 
 @jwt_required()
 def post_gender():
-    admin = get_jwt_identity()["administer"]
-    if not admin:
-        # TODO não entrou no except PermissionError
-        # raise PermissionError
-        # Ricardo
-        return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
-    
     try:
-        # TODO permitiu salvar duplicado, mas a model está ok
-        # chequei com 'flask db migrate' e 'flask db upgrade' e não há correções pendentes
-        # Ricardo
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+       
         data = request.get_json()
         keys = ["gender"]
         analyze_keys(keys, data)
@@ -34,7 +28,7 @@ def post_gender():
         return jsonify(gender), HTTPStatus.CREATED
 
     except PermissionError:
-        return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
     except KeyError as e:
         return {"error": str(e)}, HTTPStatus.BAD_REQUEST
     except IntegrityError:
@@ -54,12 +48,23 @@ def get_gender(id):
     return jsonify(gender), HTTPStatus.OK
 
 @jwt_required()
-def delete_gender(id):
-    admin = get_jwt_identity()["administer"]
-    if not admin:
-        return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
+def get_genders():
     
+    gender = GendersModel.query.order_by(GendersModel.gender.asc()).all()
+    
+    return jsonify(gender), HTTPStatus.OK
+
+
+@jwt_required()
+def delete_gender(id):
     try:
+
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+    
+    
         gender = GendersModel.query.filter_by(id=id).first()
         if not gender:
             return {"msg": "gender not found"}, HTTPStatus.NOT_FOUND
@@ -69,7 +74,9 @@ def delete_gender(id):
         
         current_app.db.session.delete(gender)
         current_app.db.session.commit()
-        
+
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST        
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 

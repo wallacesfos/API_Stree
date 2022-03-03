@@ -47,7 +47,6 @@ def create_serie():
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
-
 @jwt_required()
 def get_series():
     series = SeriesModel.query.all()
@@ -145,9 +144,40 @@ def get_serie_by_name():
         ]
     }
 
-
-
     return jsonify(serie_serializer),HTTPStatus.OK
+
+@jwt_required()
+def delete_serie(id):
+
+    try:
+
+        session = current_app.db.session
+
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+
+        serie = SeriesModel.query.filter_by(id=id).first()
+
+        if not serie:
+            return {"error": "Serie not found"}, HTTPStatus.NOT_FOUND
+
+        episodes = serie.episodes
+        
+        for i in episodes:
+
+            session.delete(i)
+            session.commit()
+
+        session.delete(serie)
+        session.commit()
+
+        return {}, 204
+
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+  
     
 @jwt_required()
 def series_recents():
@@ -172,7 +202,32 @@ def post_favorite():
         current_app.db.session.commit()
 
     except Exception as e:
-        return {"error": e.description}, HTTPStatus.BAD_REQUEST
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+    
+    return jsonify({}), HTTPStatus.NO_CONTENT
+
+@jwt_required()
+def remove_favorite():
+    try:
+        data = request.get_json()
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+        
+        if not profile in user.profiles:
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+        
+        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+        
+        if not serie in profile.series:
+            return jsonify({"error": "Serie not found in profile"}), HTTPStatus.NOT_FOUND
+        
+        remove = profile.series.index(serie)
+        profile.series.pop(remove)
+        current_app.db.session.add(profile)
+        current_app.db.session.commit()
+    
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
     
     return jsonify({}), HTTPStatus.NO_CONTENT
 
