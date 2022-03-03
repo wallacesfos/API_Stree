@@ -49,3 +49,10 @@ def get_gender(id):
         return {"error": "No gender found"}, HTTPStatus.NOT_FOUND
 
     return jsonify(gender), HTTPStatus.OK
+
+@jwt_required()
+def get_genders():
+    
+    gender = GendersModel.query.order_by(GendersModel.gender.asc()).all()
+    
+    return jsonify(gender), HTTPStatus.OK
