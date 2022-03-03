@@ -116,4 +116,4 @@ def favorites_series(id: int):
 
     profile = ProfileModel.query.filter(id=id).one_or_404("Profile not found")
 
-    return jsonify(profile.serie), 200
+    return jsonify(profile.series), 200
