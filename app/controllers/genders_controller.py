@@ -49,3 +49,25 @@ def get_gender(id):
         return {"error": "No gender found"}, HTTPStatus.NOT_FOUND
 
     return jsonify(gender), HTTPStatus.OK
+
+@jwt_required()
+def delete_gender(id):
+    admin = get_jwt_identity()["administer"]
+    if not admin:
+        return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
+    
+    try:
+        gender = GendersModel.query.filter_by(id=id).first()
+        if not gender:
+            return {"msg": "gender not found"}, HTTPStatus.NOT_FOUND
+    
+        gender.series = []
+        gender.movies = []
+        
+        current_app.db.session.delete(gender)
+        current_app.db.session.commit()
+        
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+
+    return {}, HTTPStatus.NO_CONTENT
