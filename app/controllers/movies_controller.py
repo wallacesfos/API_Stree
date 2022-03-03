@@ -3,6 +3,7 @@ from flask import request, current_app, jsonify
 from http import HTTPStatus
 from app.utils import analyze_keys
 from datetime import datetime as dt
+from operator import itemgetter
 
 from app.models.movies_model import MoviesModel
 
@@ -23,8 +24,8 @@ def get_most_seen_movies():
     
     return jsonify(most_seen), 200
 
-def myFunc(e):
-    return e['diff_days']
+# def myFunc(e):
+#     return e['diff_days']
 
 @jwt_required()
 def get_most_recent_movies():
@@ -34,7 +35,7 @@ def get_most_recent_movies():
         'diff_days': (dt.now() - m.released_date).days
         } for m in movies]
     
-    released_date_list.sort(key=myFunc)
+    released_date_list.sort(key=itemgetter(1['diffdays']))
     print('>>>>'*11, released_date_list)
     quantity = 5 if len(movies) >= 5 else len(movies)
     most_recent = []
