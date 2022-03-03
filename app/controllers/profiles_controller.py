@@ -108,3 +108,12 @@ def delete_profile(id):
    
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
+
+
+
+@jwt_required()
+def favorites_movies(id: int):
+
+    profile = ProfileModel.query.filter(id=id).one_or_404("Profile not found")
+
+    return jsonify(profile.movies), 200
