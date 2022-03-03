@@ -161,7 +161,7 @@ def delete_serie(id):
         serie = SeriesModel.query.filter_by(id=id).first()
 
         if not serie:
-            return {"error": "Serie not found"}, 404
+            return {"error": "Serie not found"}, HTTPStatus.NOT_FOUND
 
         episodes = serie.episodes
         
@@ -176,7 +176,7 @@ def delete_serie(id):
         return {}, 204
 
     except PermissionError:
-        return {"error": "Admins only"},400
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
   
     
 @jwt_required()
@@ -204,7 +204,7 @@ def post_favorite():
     except Exception as e:
         return {"error": e.description}, HTTPStatus.BAD_REQUEST
     
-    return jsonify({}), HTTPStatus.OK
+    return jsonify({}), HTTPStatus.NO_CONTENT
 
 @jwt_required()
 def remove_favorite():
@@ -226,3 +226,4 @@ def remove_favorite():
     current_app.db.session.commit()
     
     return jsonify({}), HTTPStatus.OK
+
