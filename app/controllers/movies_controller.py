@@ -1,11 +1,13 @@
-from flask import jsonify, request,current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import request, current_app, jsonify
 from http import HTTPStatus
 
-from app.models.profile_model import ProfileModel
-from app.models.movies_model import MoviesModel
-from app.exc import EmptyListError
 from app.utils import find_by_genre, analyze_keys
+from datetime import datetime as dt
+from app.exc import EmptyListError
+
+from app.models.movies_model import MoviesModel
+from app.models.profile_model import ProfileModel
 
 
 @jwt_required()
@@ -68,3 +70,29 @@ def delete_movie(id: int):
 
     except PermissionError:
         return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+
+@jwt_required()
+def get_most_seen_movies():
+    movies_most_seen = MoviesModel.query.order_by(MoviesModel.views.desc()).limit(5).all()
+   
+    
+    return jsonify(movies_most_seen), HTTPStatus.OK
+
+@jwt_required()
+def get_most_recent_movies():
+    movies = MoviesModel.query.all()
+    released_date_list = [{
+        'id': m.id,
+        'diff_days': (dt.now() - m.released_date).days
+        } for m in movies]
+    
+    released_date_list.sort(reverse=False, key=lambda arg: arg['diff_days'])
+    quantity = 5 if len(movies) >= 5 else len(movies)
+
+    most_recent = []
+    for i in range(quantity): 
+        id = released_date_list[i]['id']
+        movie = MoviesModel.query.get(id)
+        most_recent.append(movie)
+
+    return jsonify(most_recent), HTTPStatus.OK
