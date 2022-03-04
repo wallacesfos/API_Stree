@@ -13,13 +13,20 @@ def analyze_keys(keys, request):
 
 recorver_email_list = []
 
-def find_by_genre(name: str):
+
+def find_by_genre(name: str, video_type: str = "series"):
+
     from app.models.gender_model import GendersModel
     
     try:
         genre_id = GendersModel.query.filter_by(GendersModel.gender.ilike(f"%{name}%")).first().id
-        series = GendersModel.query.filter(id=genre_id).first().serie
-        return series
+
+        if video_type == "movies":
+            return GendersModel.query.filter(id=genre_id).first().movie
+        else:
+            return GendersModel.query.filter(id=genre_id).first().serie
     
     except AttributeError:
         return {"Error": "Genre not found"}, 404
+        
+        
