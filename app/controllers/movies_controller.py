@@ -14,20 +14,16 @@ def create_movie():
         session = current_app.db.session
         data = request.get_json()
         keys = [
-            "id",
             "name",
             "image",
             "description",
+            "duration",
+            "trailers",
+            "link",
             "subtitle",
             "dubbed",
-            "views",
-            "duration",
-            "created_at",
-            "updated_at",
-            "link",
             "classification",
-            "released_date",
-            "trailers"]
+            "released_date"]
         
         if not get_jwt_identity()["administer"]:
             raise PermissionError
@@ -46,9 +42,29 @@ def create_movie():
         return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
     except KeyError as e:
-        return {"error": e.args[0]}
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
 
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
 
+@jwt_required()
+def delete_movie(id: int):
+    try:
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+
+        movie = MoviesModel.query.filter_by(id=id).first()
+
+        if not movie:
+            return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
+
+        current_app.db.session.delete(movie)
+        current_app.db.session.commit()
+
+        return {}, HTTPStatus.NO_CONTENT
+
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
