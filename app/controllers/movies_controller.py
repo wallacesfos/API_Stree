@@ -110,3 +110,26 @@ def get_most_recent_movies():
         most_recent.append(movie)
 
     return jsonify(most_recent), HTTPStatus.OK
+
+
+@jwt_required()
+def get_appropriated_movie(profile_id: int):
+    try:
+        profile = ProfileModel.query.filter(id = profile_id).first()
+        if not profile:
+            return {"error": "Profile not found."}
+
+        if profile.kids:
+            series = MoviesModel.query.filter(MoviesModel.classification <= 13).all()
+            if not series: raise EmptyListError(description="There is no appropriated series to watch")
+            return jsonify(series), HTTPStatus.OK
+
+        series = MoviesModel.query.all()
+        if not series: raise EmptyListError(description="There is no series to watch")
+
+        return jsonify(series), HTTPStatus.OK
+    
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
+
+
