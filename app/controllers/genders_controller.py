@@ -94,6 +94,10 @@ def patch_gender(id):
         analyze_keys(keys, data)
         
         gender = GendersModel.query.filter_by(id=id).first()
+
+        if not gender:
+            return {"msg": "gender not found"}, HTTPStatus.NOT_FOUND
+            
         gender.gender = data["gender"]
         
         current_app.db.session.add(gender)
