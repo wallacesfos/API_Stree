@@ -1,6 +1,7 @@
 from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
+from itsdangerous import json
 
 from app.utils import analyze_keys, find_by_genre
 from app.exc import PermissionError, EmptyListError
@@ -206,6 +207,29 @@ def post_favorite():
         return {"error": e.description}, HTTPStatus.NOT_FOUND
     
     return jsonify({}), HTTPStatus.NO_CONTENT
+
+
+
+@jwt_required()
+def get_appropriated_series(profile_id: int):
+    try:
+        profile = ProfileModel.query.filter(id = profile_id).first()
+        if not profile:
+            return {"error": "Profile not found."}
+
+        if profile.kids:
+            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
+            if not series: raise EmptyListError(description="There is no appropriated series to watch")
+            return jsonify(series), HTTPStatus.OK
+
+        series = SeriesModel.query.all()
+        if not series: raise EmptyListError(description="There is no series to watch")
+
+        return jsonify(series), HTTPStatus.OK
+    
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
+
 
 @jwt_required()
 def remove_favorite():
