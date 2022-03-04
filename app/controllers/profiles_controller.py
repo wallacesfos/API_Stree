@@ -2,6 +2,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from app.models.profile_model import ProfileModel
 from flask import request, current_app, jsonify
 from app import utils
+from app.models.series_model import SeriesModel
 
 
 @jwt_required()
@@ -108,3 +109,11 @@ def delete_profile(id):
    
     except Exception:
         return {"error": "An unexpected error occurred"}, 400
+
+
+@jwt_required()
+def favorites_series(id: int):
+
+    profile = ProfileModel.query.filter(id=id).one_or_404("Profile not found")
+
+    return jsonify(profile.series), 200
