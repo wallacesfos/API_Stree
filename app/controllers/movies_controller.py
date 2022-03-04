@@ -163,8 +163,8 @@ def add_to_gender():
     
     try:
         data = request.get_json()
-        movie = MoviesModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
-        gender = GendersModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
         movie.genders.append(gender)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
