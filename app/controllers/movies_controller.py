@@ -1,86 +1,138 @@
-from flask_jwt_extended import jwt_required, get_jwt_identity
-from flask import request, current_app, jsonify
-from http import HTTPStatus
-from app.utils import analyze_keys
-from datetime import datetime as dt
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from werkzeug.security import generate_password_hash
+from app.models.user_model import UserModel
+from flask import request, current_app
+from secrets import token_urlsafe
+from sqlalchemy import exc
+from datetime import timedelta
+from flask_mail import Message
+from os import getenv
+from app import utils
 
-from app.models.movies_model import MoviesModel
+def create_register():
+    body = request.get_json()
 
-
-@jwt_required()
-def get_most_seen_movies():
-    movies = MoviesModel.query.all()
-    list_view = [m.views for m in movies]
-
-    quantity = 5 if len(movies) >= 5 else len(movies)
-    most_seen = []
-
-    for _ in range(quantity): 
-        index = list_view.index(max(list_view))
-        biggest_view = list_view.pop(index)
-        movie = MoviesModel.query.filter_by(views=biggest_view).first()
-        most_seen.append(movie)
-    
-    return jsonify(most_seen), 200
-
-@jwt_required()
-def get_most_recent_movies():
-    movies = MoviesModel.query.all()
-    released_date_list = [{
-        'id': m.id,
-        'diff_days': (dt.now() - m.released_date).days
-        } for m in movies]
-    
-    released_date_list.sort(reverse=False, key=lambda arg: arg['diff_days'])
-    quantity = 5 if len(movies) >= 5 else len(movies)
-
-    most_recent = []
-    for i in range(quantity): 
-        id = released_date_list[i]['id']
-        movie = MoviesModel.query.get(id)
-        most_recent.append(movie)
-
-    return jsonify(most_recent), 200
-
-
-
-@jwt_required()
-def create_movie():
     try:
-        session = current_app.db.session
-        data = request.get_json()
-        keys = [
-            "name",
-            "image",
-            "description",
-            "subtitle",
-            "dubbed",
-            "views",
-            "duration",
-            "link",
-            "classification",
-            "released_date",
-            "trailers"]
-        
-        administer = get_jwt_identity()
-        if not administer["administer"]:
-            raise PermissionError
+        utils.analyze_keys(["email", "password"], body)
 
-        analyze_keys(keys, data)
-        data["name"] = data["name"].title()
+        password = body.pop("password")
 
-        movie = MoviesModel(**data)
+        user = UserModel(**body)
 
-        session.add(movie)
-        session.commit()
+        user.password_to_hash = password
 
-        return jsonify(movie), HTTPStatus.CREATED
+        current_app.db.session.add(user)
+        current_app.db.session.commit()
 
-    except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
-
-    except KeyError as e:
-        return {"error": e.args[0]}
-
+        return {
+            "msg": "user created successfully"
+        }, 201
+    
+    except KeyError as error:
+        return {'error': error.args[0]}, 400
+    except exc.IntegrityError:
+        return {"error": "Email already exists"}, 409
     except Exception:
-        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+        return {"error": "An unexpected error occurred"}, 400
+
+
+
+def login_user():
+    body = request.get_json()
+    
+    try:
+        utils.analyze_keys(["email", "password"], body)
+
+        password = body.pop('password')
+
+        found_user = UserModel.query.filter_by(email=body['email']).first()
+
+
+        if not found_user or not found_user.verify_password(password):
+            return {"message": "Password or email invalid"}, 400
+
+        access_token = create_access_token(identity=found_user, expires_delta=timedelta(hours=24))
+        return {"access_token": access_token}, 200
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+    except Exception:
+        return {"error": "An unexpected error occurred"}, 400        
+
+
+
+@jwt_required()
+def update_users():
+    body = request.get_json()
+    
+    try:
+        utils.analyze_keys(["password"], body)
+        requests = get_jwt_identity()
+        found_user = UserModel.query.filter_by(email=requests['email']).first()
+
+        if found_user.verify_password(body["password"]):
+            return {"error": "Password same as above"}, 409
+
+        for key, value in body.items():
+            found_user.password_to_hash = value
+
+        current_app.db.session.add(found_user)
+        current_app.db.session.commit()
+
+        return {}, 204
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+    except Exception:
+        return {"error": "An unexpected error occurred"}, 400
+
+
+@jwt_required()
+def delete_user():
+    user = get_jwt_identity()
+    found_user = UserModel.query.filter_by(email=user['email']).first()
+    current_app.db.session.delete(found_user)
+    current_app.db.session.commit()
+    
+    return {}, 204
+    
+
+def send_email_recovery():
+    email = request.get_json()['email']
+    email_hash = generate_password_hash(email)
+    link = f"{request.base_url}/{email}?code={email_hash}"
+
+    if not UserModel.query.filter_by(email=email).first():
+        return {'error': 'email not found'}, 404
+
+    msg = Message(
+        subject = 'Recover Password',
+        sender = getenv('MAIL_USERNAME'),
+        recipients = [email],
+        body = f'''
+                Criação de senha temporária
+            Click no link abaixo para a criação de uma senha temporária:
+            {link}
+        '''
+    )
+
+    utils.recorver_email_list.append(email_hash)
+    current_app.mail.send(msg)
+    return '', 200
+
+def create_new_password(email):
+    hash = request.args['code']
+
+    if hash not in utils.recorver_email_list:
+        return {'error': 'Resource not acessible'}, 404
+
+    found_user: UserModel = UserModel.query.filter_by(email=email).first()
+    
+    new_password = token_urlsafe(8)
+    found_user.password_to_hash = new_password
+
+    current_app.db.session.add(found_user)
+    current_app.db.session.commit()
+
+    utils.recorver_email_list.pop(utils.recorver_email_list.index(hash))
+
+    return {'msg': f'you temporary password is: {new_password}'}, 200
+

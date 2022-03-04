@@ -2,13 +2,14 @@ from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
 
-from app.utils import analyze_keys
-from app.exc import PermissionError
+from app.utils import analyze_keys, find_by_genre
+from app.exc import PermissionError, EmptyListError
 from http import HTTPStatus
 
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
 from app.models.profile_model import ProfileModel
+
 from app.configs.database import db
 
 
@@ -202,7 +203,63 @@ def post_favorite():
         current_app.db.session.commit()
 
     except Exception as e:
-        return {"error": e.description}, HTTPStatus.BAD_REQUEST
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
     
     return jsonify({}), HTTPStatus.NO_CONTENT
 
+@jwt_required()
+def remove_favorite():
+    try:
+        data = request.get_json()
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+        
+        if not profile in user.profiles:
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+        
+        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+        
+        if not serie in profile.series:
+            return jsonify({"error": "Serie not found in profile"}), HTTPStatus.NOT_FOUND
+        
+        remove = profile.series.index(serie)
+        profile.series.pop(remove)
+        current_app.db.session.add(profile)
+        current_app.db.session.commit()
+    
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+    
+    return jsonify({}), HTTPStatus.NO_CONTENT
+
+
+
+@jwt_required()
+def get_series_by_genre(profile_id: int):
+    try:
+        profile = ProfileModel.query.filter(id = profile_id).first_or_404("Profile not found")
+
+        request_genre = request.args.get('genre', None)
+        if request_genre:
+            series = find_by_genre(request_genre)
+
+        if profile.kids and request_genre:
+            filtered_list = [serie for serie in series if serie.classification <= 13]
+            if not filtered_list: raise EmptyListError(description="There is no appropriated series to watch")
+            return jsonify(filtered_list), HTTPStatus.OK
+
+        elif profile.kids:
+            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
+            if not series: raise EmptyListError(description="There is no appropriated series to watch")
+            return jsonify(series), HTTPStatus.OK
+        
+        elif request_genre:
+            return jsonify(series), HTTPStatus.OK
+
+        else:
+            series = SeriesModel.query.all()
+            if not series: raise EmptyListError(description="There is no series to watch")
+            return jsonify(series), HTTPStatus.OK
+        
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
