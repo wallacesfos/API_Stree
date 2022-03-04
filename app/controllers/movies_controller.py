@@ -10,7 +10,10 @@ from app.utils import find_by_genre
 
 @jwt_required()
 def update_movie(id: int):
-    movie = MoviesModel.query.filter(id = id).one_or_404("Movie not found")
+    movie = MoviesModel.query.filter_by(id=id).first()
+
+    if not movie:
+        return {"error": "Movie not found."}, HTTPStatus.NOT_FOUND
     
     movie.views += 1
     
