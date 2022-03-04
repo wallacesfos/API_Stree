@@ -9,6 +9,7 @@ from app.routes.movies_routes import bp_movies
 
 def init_app(app: Flask):
     app.register_blueprint(bp_users)
+    app.register_blueprint(bp_movies)
     app.register_blueprint(bp_series)
     app.register_blueprint(bp_profile)
     app.register_blueprint(bp_episodes)
