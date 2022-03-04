@@ -71,6 +71,20 @@ def delete_movie(id: int):
     except PermissionError:
         return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
+
+@jwt_required()
+def update_movie(id: int):
+    movie = MoviesModel.query.filter_by(id=id).first()
+
+    if not movie:
+        return {"error": "Movie not found."}, HTTPStatus.NOT_FOUND
+    
+    movie.views += 1
+    
+    current_app.db.session.add(movie)
+    current_app.db.session.commit()
+    
+    return {}, HTTPStatus.NO_CONTENT
 @jwt_required()
 def get_most_seen_movies():
     movies_most_seen = MoviesModel.query.order_by(MoviesModel.views.desc()).limit(5).all()
