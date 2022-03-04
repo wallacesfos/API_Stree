@@ -14,7 +14,7 @@ class UserModel(db.Model):
     id = Column(Integer, primary_key=True)
     email = Column(String(130), nullable=False, unique=True)
     password = Column(String, nullable=False)
-    administer = Column(Boolean, default=True)
+    administer = Column(Boolean, default=False)
 
     @property
     def password_to_hash(self):

@@ -1,138 +1,70 @@
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from werkzeug.security import generate_password_hash
-from app.models.user_model import UserModel
-from flask import request, current_app
-from secrets import token_urlsafe
-from sqlalchemy import exc
-from datetime import timedelta
-from flask_mail import Message
-from os import getenv
-from app import utils
+from flask import jsonify, request,current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from http import HTTPStatus
 
-def create_register():
-    body = request.get_json()
-
-    try:
-        utils.analyze_keys(["email", "password"], body)
-
-        password = body.pop("password")
-
-        user = UserModel(**body)
-
-        user.password_to_hash = password
-
-        current_app.db.session.add(user)
-        current_app.db.session.commit()
-
-        return {
-            "msg": "user created successfully"
-        }, 201
-    
-    except KeyError as error:
-        return {'error': error.args[0]}, 400
-    except exc.IntegrityError:
-        return {"error": "Email already exists"}, 409
-    except Exception:
-        return {"error": "An unexpected error occurred"}, 400
-
-
-
-def login_user():
-    body = request.get_json()
-    
-    try:
-        utils.analyze_keys(["email", "password"], body)
-
-        password = body.pop('password')
-
-        found_user = UserModel.query.filter_by(email=body['email']).first()
-
-
-        if not found_user or not found_user.verify_password(password):
-            return {"message": "Password or email invalid"}, 400
-
-        access_token = create_access_token(identity=found_user, expires_delta=timedelta(hours=24))
-        return {"access_token": access_token}, 200
-    except KeyError as e:
-        return {"error": e.args[0]}, 400
-    except Exception:
-        return {"error": "An unexpected error occurred"}, 400        
-
+from app.models.profile_model import ProfileModel
+from app.models.movies_model import MoviesModel
+from app.exc import EmptyListError
+from app.utils import find_by_genre, analyze_keys
 
 
 @jwt_required()
-def update_users():
-    body = request.get_json()
-    
+def create_movie():
     try:
-        utils.analyze_keys(["password"], body)
-        requests = get_jwt_identity()
-        found_user = UserModel.query.filter_by(email=requests['email']).first()
+        session = current_app.db.session
+        data = request.get_json()
+        keys = [
+            "name",
+            "image",
+            "description",
+            "duration",
+            "trailers",
+            "link",
+            "subtitle",
+            "dubbed",
+            "classification",
+            "released_date"]
+        
+        if not get_jwt_identity()["administer"]:
+            raise PermissionError
 
-        if found_user.verify_password(body["password"]):
-            return {"error": "Password same as above"}, 409
+        analyze_keys(keys, data)
+        data["name"] = data["name"].title()
 
-        for key, value in body.items():
-            found_user.password_to_hash = value
+        movie = MoviesModel(**data)
 
-        current_app.db.session.add(found_user)
-        current_app.db.session.commit()
+        session.add(movie)
+        session.commit()
 
-        return {}, 204
+        return jsonify(movie), HTTPStatus.CREATED
+
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+
     except KeyError as e:
-        return {"error": e.args[0]}, 400
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
+
     except Exception:
-        return {"error": "An unexpected error occurred"}, 400
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
 
 
 @jwt_required()
-def delete_user():
-    user = get_jwt_identity()
-    found_user = UserModel.query.filter_by(email=user['email']).first()
-    current_app.db.session.delete(found_user)
-    current_app.db.session.commit()
-    
-    return {}, 204
-    
+def delete_movie(id: int):
+    try:
+        administer = get_jwt_identity()
 
-def send_email_recovery():
-    email = request.get_json()['email']
-    email_hash = generate_password_hash(email)
-    link = f"{request.base_url}/{email}?code={email_hash}"
+        if not administer["administer"]:
+            raise PermissionError
 
-    if not UserModel.query.filter_by(email=email).first():
-        return {'error': 'email not found'}, 404
+        movie = MoviesModel.query.filter_by(id=id).first()
 
-    msg = Message(
-        subject = 'Recover Password',
-        sender = getenv('MAIL_USERNAME'),
-        recipients = [email],
-        body = f'''
-                Criação de senha temporária
-            Click no link abaixo para a criação de uma senha temporária:
-            {link}
-        '''
-    )
+        if not movie:
+            return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
 
-    utils.recorver_email_list.append(email_hash)
-    current_app.mail.send(msg)
-    return '', 200
+        current_app.db.session.delete(movie)
+        current_app.db.session.commit()
 
-def create_new_password(email):
-    hash = request.args['code']
+        return {}, HTTPStatus.NO_CONTENT
 
-    if hash not in utils.recorver_email_list:
-        return {'error': 'Resource not acessible'}, 404
-
-    found_user: UserModel = UserModel.query.filter_by(email=email).first()
-    
-    new_password = token_urlsafe(8)
-    found_user.password_to_hash = new_password
-
-    current_app.db.session.add(found_user)
-    current_app.db.session.commit()
-
-    utils.recorver_email_list.pop(utils.recorver_email_list.index(hash))
-
-    return {'msg': f'you temporary password is: {new_password}'}, 200
-
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
