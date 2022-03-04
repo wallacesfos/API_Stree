@@ -11,6 +11,5 @@ def analyze_keys(keys, request):
     except KeyError:
         raise KeyError(f"Must contain the keys: {keys}")
 
-
-
+recorver_email_list = []
 
