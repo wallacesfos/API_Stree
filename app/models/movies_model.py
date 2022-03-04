@@ -19,6 +19,8 @@ class MoviesModel(db.Model):
     views: int
     dubbed: bool
     subtitle: bool
+    classification: int
+    released_date: datetime
 
     __tablename__ = 'movies'
 
@@ -30,9 +32,11 @@ class MoviesModel(db.Model):
     dubbed = Column(Boolean, nullable=False)
     views = Column(Integer, default=0)
     duration = Column(Integer, nullable=False)
-    created_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
-    updated_at = Column(DateTime, default=datetime.now().strftime('%d/%m/%Y %H:%M:%S'))
+    created_at = Column(DateTime, default=datetime.now())
+    updated_at = Column(DateTime, default=datetime.now())
     link = Column(String, nullable=False)
+    classification = Column(Integer, nullable=False)
+    released_date = Column(DateTime, nullable=False)
     trailers = Column(String)
 
     profile = relationship(ProfileModel, secondary=favorite_movies, backref=backref('movies'))
