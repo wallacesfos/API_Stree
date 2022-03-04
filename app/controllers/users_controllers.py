@@ -1,7 +1,5 @@
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-
 from werkzeug.security import generate_password_hash
-
 from app.models.user_model import UserModel
 from flask import request, current_app
 from secrets import token_urlsafe
