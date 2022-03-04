@@ -6,7 +6,7 @@ from app.controllers.profiles_controller import (
     get_profiles, 
     update_profile, 
     delete_profile,
-    favorites_movies
+    favorites_movies,
     favorites_series
 )
 

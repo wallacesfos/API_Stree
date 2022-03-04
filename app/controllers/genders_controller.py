@@ -102,10 +102,11 @@ def patch_gender(id):
         
         current_app.db.session.add(gender)
         current_app.db.session.commit()
-    
+
+        return {}, HTTPStatus.NO_CONTENT
+
     except KeyError as e:
         return {"error": str(e)}, HTTPStatus.BAD_REQUEST
     except IntegrityError:
         return {"error": "gender already exists"}, HTTPStatus.CONFLICT
     
-    return {"msg": f"Patch gender ok, id {id}"}, HTTPStatus.OK
