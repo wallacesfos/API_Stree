@@ -8,9 +8,11 @@ from app.controllers.series_controller import (
     patch_serie_most_seen, 
     series_recents, 
     post_favorite, 
-    delete_serie, 
+    delete_serie,
+    remove_favorite,
     get_series_by_genre
 )
+
 
 
 bp_series = Blueprint("series", __name__, url_prefix="/series")
@@ -24,6 +26,5 @@ bp_series.patch("/most_seen/<int:id>")(patch_serie_most_seen)
 bp_series.get("/")(get_serie_by_name)
 bp_series.post('/favorite')(post_favorite)
 bp_series.delete("/<int:id>")(delete_serie)
-
-
+bp_series.delete('/favorite')(remove_favorite)
 

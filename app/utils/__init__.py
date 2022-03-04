@@ -11,8 +11,7 @@ def analyze_keys(keys, request):
     except KeyError:
         raise KeyError(f"Must contain the keys: {keys}")
 
-
-
+recorver_email_list = []
 
 def find_by_genre(name: str):
     from app.models.gender_model import GendersModel
