@@ -3,6 +3,8 @@ from flask import request, current_app, jsonify
 from http import HTTPStatus
 
 from app.utils import find_by_genre, analyze_keys
+from werkzeug.exceptions import NotFound
+
 from datetime import datetime as dt
 from app.exc import EmptyListError
 
@@ -156,33 +158,45 @@ def get_movies_by_name(profile_id: int, title: str):
 
 @jwt_required()
 def add_to_gender():
+    data = request.get_json()
+
     try:
+        analyze_keys(["gender_id", "movie_id"], data)
+
         administer = get_jwt_identity()
 
         if not administer["administer"]:
             raise PermissionError
             
-        data = request.get_json()
+
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
         gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
         movie.genders.append(gender)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
-        
-    except Exception as e:
+
+    except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
+
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+        
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
-    return {}, HTTPStatus.OK
+    return {}, HTTPStatus.NO_CONTENT
 
 @jwt_required()
 def remove_from_gender():
+    data = request.get_json()
     try:
+        analyze_keys(["gender_id", "movie_id"], data)
+        
         administer = get_jwt_identity()
 
         if not administer["administer"]:
             raise PermissionError
             
-        data = request.get_json()
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
         gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
         remove = movie.genders.index(gender)
@@ -192,7 +206,14 @@ def remove_from_gender():
     
     except ValueError:
         return {"error": "film does not belong to the genre"}, HTTPStatus.BAD_REQUEST
-    except Exception as e:
+
+    except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
+
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+        
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
     return {}, HTTPStatus.OK
