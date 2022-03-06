@@ -155,12 +155,33 @@ def get_movies_by_name(profile_id: int, title: str):
 
 
 @jwt_required()
-def remove_from_gender():
-    administer = get_jwt_identity()["administer"]
-    if not administer:
-        raise PermissionError
-    
+def add_to_gender():
     try:
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
+        data = request.get_json()
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        movie.genders.append(gender)
+        current_app.db.session.add(gender)
+        current_app.db.session.commit()
+        
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+    
+    return {}, HTTPStatus.OK
+
+@jwt_required()
+def remove_from_gender():
+    try:
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
         data = request.get_json()
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
         gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
