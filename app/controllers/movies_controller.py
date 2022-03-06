@@ -154,14 +154,14 @@ def get_movies_by_name(profile_id: int, title: str):
         return {"error": e.description}, e.code
 
 
-
 @jwt_required()
 def add_to_gender():
-    administer = get_jwt_identity()["administer"]
-    if not administer:
-        raise PermissionError
-    
     try:
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
         data = request.get_json()
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
         gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
@@ -173,4 +173,26 @@ def add_to_gender():
         return {"error": e.description}, HTTPStatus.NOT_FOUND
     
     return {}, HTTPStatus.OK
-        
+
+@jwt_required()
+def remove_from_gender():
+    try:
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
+        data = request.get_json()
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        remove = movie.genders.index(gender)
+        movie.genders.pop(remove)
+        current_app.db.session.add(movie)
+        current_app.db.session.commit()
+    
+    except ValueError:
+        return {"error": "film does not belong to the genre"}, HTTPStatus.BAD_REQUEST
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+    
+    return {}, HTTPStatus.OK
