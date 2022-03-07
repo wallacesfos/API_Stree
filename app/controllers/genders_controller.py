@@ -52,7 +52,6 @@ def get_gender(id):
 
     return jsonify(gender), HTTPStatus.OK
 
-
 @jwt_required()
 def delete_gender(id):
     try:
