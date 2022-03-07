@@ -3,11 +3,14 @@ from flask import request, current_app, jsonify
 from http import HTTPStatus
 
 from app.utils import find_by_genre, analyze_keys
+from werkzeug.exceptions import NotFound
+
 from datetime import datetime as dt
 from app.exc import EmptyListError
 
 from app.models.movies_model import MoviesModel
 from app.models.profile_model import ProfileModel
+from app.models.gender_model import GendersModel
 
 
 @jwt_required()
@@ -110,3 +113,107 @@ def get_most_recent_movies():
         most_recent.append(movie)
 
     return jsonify(most_recent), HTTPStatus.OK
+
+
+@jwt_required()
+def get_appropriated_movie(profile_id: int):
+    try:
+        profile = ProfileModel.query.filter(id = profile_id).first()
+        if not profile:
+            return {"error": "Profile not found."}
+
+        if profile.kids:
+            series = MoviesModel.query.filter(MoviesModel.classification <= 13).all()
+            if not series: raise EmptyListError(description="There is no appropriated series to watch")
+            return jsonify(series), HTTPStatus.OK
+
+        series = MoviesModel.query.all()
+        if not series: raise EmptyListError(description="There is no series to watch")
+
+        return jsonify(series), HTTPStatus.OK
+    
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
+      
+@jwt_required()
+def get_movies_by_name(profile_id: int, title: str):
+    try:
+        movies = MoviesModel.query.filter_by(MoviesModel.name.ilike(f"%{title}%")).all()
+
+        profile = ProfileModel.query.filter(id=profile_id).first()
+
+        if not profile:
+            return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
+
+        if profile.kids:
+            return jsonify([movie for movie in movies if movie.classification <= 13]), HTTPStatus.OK
+
+        if not movies:
+            raise EmptyListError
+
+        return jsonify(movies), HTTPStatus.OK
+    except EmptyListError as e:
+        return {"error": e.description}, e.code
+
+
+@jwt_required()
+def add_to_gender():
+    data = request.get_json()
+
+    try:
+        analyze_keys(["gender_id", "movie_id"], data)
+
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
+
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        movie.genders.append(gender)
+        current_app.db.session.add(gender)
+        current_app.db.session.commit()
+
+    except NotFound as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+        
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+    
+    return {}, HTTPStatus.NO_CONTENT
+
+@jwt_required()
+def remove_from_gender():
+    data = request.get_json()
+    try:
+        analyze_keys(["gender_id", "movie_id"], data)
+        
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
+        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        remove = movie.genders.index(gender)
+        movie.genders.pop(remove)
+        current_app.db.session.add(movie)
+        current_app.db.session.commit()
+    
+    except ValueError:
+        return {"error": "film does not belong to the genre"}, HTTPStatus.BAD_REQUEST
+
+    except NotFound as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+        
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+    
+    return {}, HTTPStatus.OK
