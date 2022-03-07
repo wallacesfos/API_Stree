@@ -1,20 +1,16 @@
 from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
-from itsdangerous import json
+from app.models.gender_model import GendersModel
 
-from app.utils import analyze_keys, find_by_genre
+from app.utils import analyze_keys, find_by_genre, serializer
 from app.exc import PermissionError, EmptyListError
+from werkzeug.exceptions import NotFound
 from http import HTTPStatus
 
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
 from app.models.profile_model import ProfileModel
-
-from app.configs.database import db
-
-
-
 
 
 @jwt_required()
@@ -22,7 +18,15 @@ def create_serie():
     try:
         session = current_app.db.session
         data = request.get_json()
-        keys = ["name", "image", "description", "seasons", "subtitle", "dubbed", "trailer", "classification", "released_date"]
+        keys = ["name",
+                 "image",
+                 "description", 
+                 "seasons", 
+                 "subtitle", 
+                 "dubbed", 
+                 "trailer", 
+                 "classification", 
+                 "released_date"]
         
         administer = get_jwt_identity()
         
@@ -44,7 +48,7 @@ def create_serie():
         return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
     except KeyError as e:
-        return {"error": e.args[0]}
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
 
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
@@ -52,11 +56,13 @@ def create_serie():
 @jwt_required()
 def get_series():
     series = SeriesModel.query.all()
-    
-    if not series:
-        return {"error": "No data found"}, HTTPStatus.NOT_FOUND
 
-    return jsonify(series),HTTPStatus.OK
+    if not series:
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+
+    serie_serializer = serializer(series)
+
+    return jsonify(serie_serializer), HTTPStatus.OK
 
 
 @jwt_required()
@@ -74,11 +80,12 @@ def get_serie_by_id(id):
         "seasons": serie.seasons,
         "trailer": serie.trailer,
         "created_at": serie.created_at,
-		    "views": serie.views,
+        "views": serie.views,
         "dubbed": serie.dubbed,
-		    "subtitle": serie.subtitle,
-		    "classification": serie.classification,
+        "subtitle": serie.subtitle,
+        "classification": serie.classification,
         "released_date": serie.released_date,
+        "gender": serie.genders,
         "episodes": [
             {
                 "season": episode.season, 
@@ -90,36 +97,12 @@ def get_serie_by_id(id):
 
     return jsonify(serie_serializer), HTTPStatus.OK
 
-
-@jwt_required()
-def patch_serie_most_seen(id):
-    serie = SeriesModel.query.get(id)
-    
-    if not serie:
-        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
-    
-    serie.views += 1
-    
-    current_app.db.session.add(serie)
-    current_app.db.session.commit()
-
-    
-    return {}, HTTPStatus.NO_CONTENT
-
 @jwt_required()
 def get_serie_by_name():
     serie_name = request.args.get("name")
     serie_name = serie_name.title()
-    new_str = ""
-
-    for i in serie_name:
-        if i == "%":
-            new_str += " "
-        else:
-            new_str += i
-            
-    
-    serie = SeriesModel.query.filter_by(name=new_str).first()
+  
+    serie = SeriesModel.query.filter_by(name=serie_name).first()
     
     if not serie:
         return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
@@ -132,11 +115,12 @@ def get_serie_by_name():
         "seasons": serie.seasons,
         "trailer": serie.trailer,
         "created_at": serie.created_at,
-		    "views": serie.views,
+        "views": serie.views,
         "dubbed": serie.dubbed,
-		    "subtitle": serie.subtitle,
-		    "classification": serie.classification,
+        "subtitle": serie.subtitle,
+        "classification": serie.classification,
         "released_date": serie.released_date,
+        "gender": serie.genders,
         "episodes": [
             {
                 "season": episode.season, 
@@ -147,6 +131,45 @@ def get_serie_by_name():
     }
 
     return jsonify(serie_serializer),HTTPStatus.OK
+
+@jwt_required()
+def get_serie_most_seen():
+    series_most_seen = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
+    
+    serie_serializer = serializer(series_most_seen)
+    
+    return jsonify(serie_serializer), HTTPStatus.OK
+
+@jwt_required()
+def series_recents():
+    series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
+    
+    serie_serializer = serializer(series)
+    
+    return jsonify(serie_serializer), HTTPStatus.OK
+
+@jwt_required()
+def get_appropriated_series(profile_id: int):
+    try:
+        profile = ProfileModel.query.filter_by(id = profile_id).first()
+        if not profile:
+            return {"error": "Profile not found."}
+
+        if profile.kids:
+            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
+            
+            if not series: 
+                raise EmptyListError(description="There is no appropriated series to watch")
+            return jsonify(series), HTTPStatus.OK
+
+        series = SeriesModel.query.all()
+        if not series: 
+            raise EmptyListError(description="There is no series to watch")
+
+        return jsonify(series), HTTPStatus.OK
+    
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
 
 @jwt_required()
 def delete_serie(id):
@@ -182,13 +205,6 @@ def delete_serie(id):
   
     
 @jwt_required()
-def series_recents():
-    series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
-    
-    return jsonify(series), HTTPStatus.OK
-
-    
-@jwt_required()
 def post_favorite():
     try:
         data = request.get_json()
@@ -208,27 +224,6 @@ def post_favorite():
     
     return jsonify({}), HTTPStatus.NO_CONTENT
 
-
-
-@jwt_required()
-def get_appropriated_series(profile_id: int):
-    try:
-        profile = ProfileModel.query.filter(id = profile_id).first()
-        if not profile:
-            return {"error": "Profile not found."}
-
-        if profile.kids:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
-            if not series: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(series), HTTPStatus.OK
-
-        series = SeriesModel.query.all()
-        if not series: raise EmptyListError(description="There is no series to watch")
-
-        return jsonify(series), HTTPStatus.OK
-    
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
 
 
 @jwt_required()
@@ -256,12 +251,74 @@ def remove_favorite():
     
     return jsonify({}), HTTPStatus.NO_CONTENT
 
+@jwt_required()
+def add_to_gender():
+    body = request.get_json()
+
+    try:
+        analyze_keys(["gender_id", "serie_id"], body)
+
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
+
+        serie = SeriesModel.query.filter_by(id=body["serie_id"]).first_or_404("Serie not found")
+        gender = GendersModel.query.filter_by(id=body["gender_id"]).first_or_404("Gender not found")
+        serie.genders.append(gender)
+        current_app.db.session.add(gender)
+        current_app.db.session.commit()
+
+    except NotFound as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+        
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+    
+    return {}, HTTPStatus.NO_CONTENT
+
+@jwt_required()
+def remove_from_gender():
+    data = request.get_json()
+    try:
+        analyze_keys(["gender_id", "serie_id"], data)
+        
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
+            
+        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("serie not found")
+        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        remove = serie.genders.index(gender)
+        serie.genders.pop(remove)
+        current_app.db.session.add(serie)
+        current_app.db.session.commit()
+    
+    except ValueError:
+        return {"error": "film does not belong to the genre"}, HTTPStatus.BAD_REQUEST
+
+    except NotFound as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+
+    except KeyError as e:
+        return {"error": e.args[0]}, 400
+        
+    except Exception:
+        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+    
+    return {}, HTTPStatus.OK
+
 
 
 @jwt_required()
 def get_series_by_genre(profile_id: int):
     try:
-        profile = ProfileModel.query.filter(id = profile_id).first_or_404("Profile not found")
+        profile = ProfileModel.query.filter_by(id = profile_id).first_or_404("Profile not found")
 
         request_genre = request.args.get('genre', None)
         if request_genre:
@@ -287,3 +344,5 @@ def get_series_by_genre(profile_id: int):
         
     except EmptyListError as e:
         return {"Message": e.description}, e.code
+    
+
