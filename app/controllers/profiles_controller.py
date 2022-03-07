@@ -51,7 +51,7 @@ def get_profiles():
     if serializer == []:
         return {"error": "Nada foi encontrado"}, 404
 
-    return jsonify({"profile": serializer}), 200
+    return jsonify(serializer), 200
 
 
 @jwt_required()
