@@ -1,6 +1,7 @@
 from flask import Flask
 from app.configs import database, migrations, jwt, mail
 from app import routes
+from flask_cors import CORS
 import os
 
 def create_app():
@@ -10,6 +11,8 @@ def create_app():
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
     app.config["JSON_SORT_KEYS"] = False
     app.config["JWT_SECRET_KEY"] = os.environ.get("JWT_SECRET_KEY")
+    
+    CORS(app)
 
     mail.init_app(app)
     database.init_app(app)
