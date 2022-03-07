@@ -10,7 +10,9 @@ from app.controllers.series_controller import (
     post_favorite, 
     delete_serie,
     remove_favorite,
-    get_appropriated_series
+    get_appropriated_series,
+    add_to_gender,
+    remove_from_gender
 )
 
 
@@ -27,4 +29,6 @@ bp_series.get("/")(get_serie_by_name)
 bp_series.post('/favorite')(post_favorite)
 bp_series.delete("/<int:id>")(delete_serie)
 bp_series.delete('/favorite')(remove_favorite)
+bp_series.delete('/gender')(remove_from_gender)
+bp_series.post('/gender')(add_to_gender)
 
