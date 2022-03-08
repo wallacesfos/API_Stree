@@ -1,4 +1,8 @@
 
+from http import HTTPStatus
+from flask import jsonify
+
+
 recorver_email_list = []
 
 def analyze_keys(keys, request):
@@ -20,15 +24,17 @@ def find_by_genre(name: str, video_type: str = "series"):
     from app.models.gender_model import GendersModel
     
     try:
-        genre_id = GendersModel.query.filter_by(GendersModel.gender.ilike(f"%{name}%")).first()
-        print(genre_id)
+        genre_id = GendersModel.query.filter(GendersModel.gender.ilike(f"{name}")).first()
+        
         if video_type == "movies":
-            return GendersModel.query.filter(id=genre_id).first().movie
+            return jsonify(genre_id.movies), HTTPStatus.OK
         else:
-            return GendersModel.query.filter(id=genre_id).first().serie
+            return jsonify(genre_id.series), HTTPStatus.OK
     
     except AttributeError:
-        return {"Error": "Genre not found"}, 404
+        return {"Error": "Genre not found"}, HTTPStatus.NOT_FOUND
+
+
 
 def serializer(series):
     serie_serializer = [{

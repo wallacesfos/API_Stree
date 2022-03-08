@@ -316,33 +316,9 @@ def remove_from_gender():
 
 
 @jwt_required()
-def get_series_by_genre(profile_id: int):
-    try:
-        profile = ProfileModel.query.filter_by(id = profile_id).first_or_404("Profile not found")
+def get_series_by_genre(genre_name: str):
 
-        request_genre = request.args.get('genre', None)
-        if request_genre:
-            series = find_by_genre(request_genre)
+    series = find_by_genre(genre_name)
 
-        if profile.kids and request_genre:
-            filtered_list = [serie for serie in series if serie.classification <= 13]
-            if not filtered_list: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(filtered_list), HTTPStatus.OK
-
-        elif profile.kids:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
-            if not series: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(series), HTTPStatus.OK
-        
-        elif request_genre:
-            return jsonify(series), HTTPStatus.OK
-
-        else:
-            series = SeriesModel.query.all()
-            if not series: raise EmptyListError(description="There is no series to watch")
-            return jsonify(series), HTTPStatus.OK
-        
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
-    
+    return series
 
