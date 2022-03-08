@@ -32,10 +32,10 @@ def create_episode():
         return jsonify(episode), HTTPStatus.CREATED
 
     except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
 
     except KeyError as e:
-        return {"error": str(e)}
+        return {"error": e.args[0]}
 
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
@@ -43,41 +43,19 @@ def create_episode():
 @jwt_required()
 def get_episodes():
     episodes = EpisodesModel.query.all()
-    
-    if not episodes:
-        return {"error": "No data found"}, HTTPStatus.NOT_FOUND
 
     return jsonify(episodes), HTTPStatus.OK
 
 @jwt_required()
-def get_episode_by_serie_id(serie_id):
+def get_episode_by_id(id):
     try:
-        serie = SeriesModel.query.filter_by(id=serie_id).first()
-        episode = EpisodesModel.query.filter_by(id=serie_id).first()
+        episode = EpisodesModel.query.filter_by(id=id).one()
 
-        if not serie:
-            return {"message": "Episode not found"}, HTTPStatus.NOT_FOUND
+    except NoResultFound:
+        return {"error": "Episode not found"}, HTTPStatus.NOT_FOUND
+    
+    return jsonify(episode), HTTPStatus.OK
 
-        episode_serialize = {
-            
-            "series_id": episode.series_id,
-            "name": serie.name,
-            "image": serie.image,
-            "description": serie.description,
-            "subtitle": serie.subtitle,
-            "dubled": serie.dubbed,
-            "episodes":[
-                {
-                    "season": episode.season, 
-                    "link": episode.link, 
-                    "series_id": episode.series_id,
-                    "episode": episode.episode
-                }
-            ]
-        }
-        return jsonify(episode_serialize), HTTPStatus.OK
-    except NotFound as e:
-        return {"error": e.description}, HTTPStatus.NOT_FOUND
 
 
 @jwt_required()
@@ -99,12 +77,4 @@ def delete_episode(id):
         return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
    
-
-def get_episode_by_id(id):
-    try:
-        episode = EpisodesModel.query.filter_by(id=id).one()
-    except NoResultFound:
-        return {"msg": "Episode not found"}, HTTPStatus.NOT_FOUND
-    
-    return jsonify(episode), HTTPStatus.OK
 
