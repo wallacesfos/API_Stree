@@ -223,5 +223,8 @@ def get_movie_by_id(id):
 
     if not movie:
         return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
+
+    movie.views += 1
+    current_app.db.session.commit()
     
     return jsonify(movie), HTTPStatus.OK

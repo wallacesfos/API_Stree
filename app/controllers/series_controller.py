@@ -95,6 +95,9 @@ def get_serie_by_id(id):
         ]
     }
 
+    serie.views += 1
+    current_app.db.session.commit()
+
     return jsonify(serie_serializer), HTTPStatus.OK
 
 @jwt_required()
