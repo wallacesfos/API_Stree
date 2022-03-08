@@ -88,6 +88,7 @@ def update_movie(id: int):
     current_app.db.session.commit()
     
     return {}, HTTPStatus.NO_CONTENT
+
 @jwt_required()
 def get_most_seen_movies():
     movies_most_seen = MoviesModel.query.order_by(MoviesModel.views.desc()).limit(5).all()
@@ -217,3 +218,13 @@ def remove_from_gender():
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
     return {}, HTTPStatus.OK
+
+
+
+@jwt_required()
+def get_movies_by_genre(genre_name: str):
+
+    movies = find_by_genre(genre_name, video_type="movies")
+
+    return movies
+
