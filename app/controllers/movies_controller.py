@@ -217,3 +217,11 @@ def remove_from_gender():
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
     return {}, HTTPStatus.OK
+
+def get_movie_by_id(id):    
+    movie = MoviesModel.query.get(id)
+
+    if not movie:
+        return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
+    
+    return jsonify(movie), HTTPStatus.OK
