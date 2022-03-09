@@ -219,6 +219,9 @@ def post_favorite():
             return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
         
         serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+        if serie in profile.series:
+            return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT
+        
         profile.series.append(serie)
         current_app.db.session.add(profile)
         current_app.db.session.commit()
