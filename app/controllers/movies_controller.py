@@ -4,6 +4,9 @@ from http import HTTPStatus
 
 from app.utils import find_by_genre, analyze_keys
 from werkzeug.exceptions import NotFound
+from sqlalchemy.exc import IntegrityError
+from psycopg2.errors import UniqueViolation
+
 
 from datetime import datetime as dt
 from app.exc import EmptyListError
@@ -49,8 +52,9 @@ def create_movie():
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
 
-    except Exception:
-        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
+    except IntegrityError as e:
+        if isinstance(e.orig, UniqueViolation):
+            return {"error": "This movie is already exists"}, HTTPStatus.CONFLICT
 
 
 @jwt_required()
