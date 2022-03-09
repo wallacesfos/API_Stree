@@ -12,6 +12,7 @@ from app.controllers.movies_controller import (
     get_most_seen_movies,
     remove_from_gender,
     get_movies_by_genre
+    get_movies_by_name
 )
 
 bp_movies = Blueprint("movies", __name__, url_prefix="/movies")
@@ -24,4 +25,5 @@ bp_movies.patch("/<int:id>")(update_movie)
 bp_movies.delete('/gender')(remove_from_gender)
 bp_movies.post('/gender')(add_to_gender)
 bp_movies.get('/<genre_name>')(get_movies_by_genre)
+bp_movies.get("/<int:profile_id>/<title>")(get_movies_by_name)
 
