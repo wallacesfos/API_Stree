@@ -3,6 +3,7 @@ from flask import Blueprint
 from app.controllers.series_controller import (
     add_to_gender,
     create_serie,
+    get_appropriated_series,
     get_series,
     get_serie_by_id, 
     get_serie_by_name, 
@@ -24,7 +25,7 @@ bp_series.post("")(create_serie)
 bp_series.get("")(get_series)
 bp_series.get("/<int:id>")(get_serie_by_id)
 bp_series.get("/genre/<genre_name>")(get_series_by_genre)
-bp_series.get("/profile/<int:profile_id>")(get_by_series)
+bp_series.get("/profile/<int:profile_id>")(get_appropriated_series)
 bp_series.get("/recents")(series_recents)
 bp_series.get("/most_seen")(get_serie_most_seen)
 bp_series.get("/")(get_serie_by_name)
