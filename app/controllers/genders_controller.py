@@ -4,7 +4,6 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 
 from app.utils import analyze_keys
 from app.models.gender_model import GendersModel
-from app.configs.database import db
 from app.exc import PermissionError
 from sqlalchemy.exc import IntegrityError
 
@@ -17,11 +16,11 @@ def post_gender():
         if not administer["administer"]:
             raise PermissionError
        
-        data = request.get_json()
+        body = request.get_json()
         keys = ["gender"]
-        analyze_keys(keys, data)
+        analyze_keys(keys, body)
         
-        gender = GendersModel(**data)
+        gender = GendersModel(**body)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
         
@@ -30,22 +29,11 @@ def post_gender():
     except PermissionError:
         return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
     except KeyError as e:
-        return {"error": str(e)}, HTTPStatus.BAD_REQUEST
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
     except IntegrityError:
         return {"error": "gender already exists"}, HTTPStatus.CONFLICT
-
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
-
-@jwt_required()
-def get_gender(id):
-    
-    gender = GendersModel.query.filter_by(id=id).first()
-    
-    if not gender:
-        return {"error": "No gender found"}, HTTPStatus.NOT_FOUND
-
-    return jsonify(gender), HTTPStatus.OK
 
 @jwt_required()
 def get_genders():
@@ -54,6 +42,15 @@ def get_genders():
     
     return jsonify(gender), HTTPStatus.OK
 
+@jwt_required()
+def get_gender(id):
+    
+    gender = GendersModel.query.filter_by(id=id).first()
+    
+    if not gender:
+        return {"error": "Gender not found"}, HTTPStatus.NOT_FOUND
+
+    return jsonify(gender), HTTPStatus.OK
 
 @jwt_required()
 def delete_gender(id):
@@ -67,7 +64,7 @@ def delete_gender(id):
     
         gender = GendersModel.query.filter_by(id=id).first()
         if not gender:
-            return {"msg": "gender not found"}, HTTPStatus.NOT_FOUND
+            return {"msg": "Gender not found"}, HTTPStatus.NOT_FOUND
     
         gender.series = []
         gender.movies = []
@@ -85,28 +82,33 @@ def delete_gender(id):
 @jwt_required()
 def patch_gender(id): 
     try:
-        admin = get_jwt_identity()["administer"]
-        if not admin:
-            return {"error": "not admin"}, HTTPStatus.BAD_REQUEST
+        administer = get_jwt_identity()
+
+        if not administer["administer"]:
+            raise PermissionError
         
-        data = request.get_json()
+        body = request.get_json()
         keys = ["gender"]
-        analyze_keys(keys, data)
+
+        analyze_keys(keys, body)
         
         gender = GendersModel.query.filter_by(id=id).first()
 
         if not gender:
             return {"msg": "gender not found"}, HTTPStatus.NOT_FOUND
             
-        gender.gender = data["gender"]
+        gender.gender = body["gender"]
         
         current_app.db.session.add(gender)
         current_app.db.session.commit()
 
         return {}, HTTPStatus.NO_CONTENT
 
+    
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
     except KeyError as e:
-        return {"error": str(e)}, HTTPStatus.BAD_REQUEST
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
     except IntegrityError:
         return {"error": "gender already exists"}, HTTPStatus.CONFLICT
     
