@@ -57,10 +57,10 @@ def create_serie():
 @jwt_required()
 def get_series():
     try:
-        if valid_profile_kid():
-            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
-        else:
+        if not valid_profile_kid():
             series = SeriesModel.query.all()
+        else:
+            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
 
         if not series:
             return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND

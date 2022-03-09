@@ -26,17 +26,12 @@ def find_by_genre(name: str, video_type: str = "series"):
     try:
         genre_id = GendersModel.query.filter(GendersModel.gender.ilike(f"{name}")).first()
         
-        if not valid_profile_kid():
-            genre = GendersModel.query.filter(GendersModel.gender.ilike(f"{name}")).first()
-        else:
-            genre = GendersModel.query.filter(GendersModel.gender.ilike(f"{name}")).first()
-            
         if video_type == "movies":
-#TODO precisa pensar em um jeito de pegar genre.movies e verificar a classificação
-            return jsonify(genre.movies), HTTPStatus.OK
+#TODO precisamos pensar em um jeito de pegar genre.movies e verificar a classificação
+            return jsonify(genre_id.movies), HTTPStatus.OK
         else:
-#TODO precisa pensar em um jeito de pegar genre.series e verificar a classificação
-            return jsonify(genre.series), HTTPStatus.OK
+#TODO precisamos pensar em um jeito de pegar genre.series e verificar a classificação
+            return jsonify(genre_id.series), HTTPStatus.OK
     
     except AttributeError:
         return {"Error": "Genre not found"}, HTTPStatus.NOT_FOUND
