@@ -1,7 +1,7 @@
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, Unauthorized
 
 
-class PermissionError(Exception):
+class PermissionError(Unauthorized):
     ...
 
 class EmptyListError(NotFound): ...
