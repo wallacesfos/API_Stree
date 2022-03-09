@@ -1,6 +1,5 @@
-
 from http import HTTPStatus
-from flask import jsonify
+from flask import jsonify, request
 
 
 recorver_email_list = []
@@ -28,8 +27,10 @@ def find_by_genre(name: str, video_type: str = "series"):
         genre_id = GendersModel.query.filter(GendersModel.gender.ilike(f"{name}")).first()
         
         if video_type == "movies":
+#TODO precisamos pensar em um jeito de pegar genre.movies e verificar a classificação
             return jsonify(genre_id.movies), HTTPStatus.OK
         else:
+#TODO precisamos pensar em um jeito de pegar genre.series e verificar a classificação
             return jsonify(genre_id.series), HTTPStatus.OK
     
     except AttributeError:
@@ -68,3 +69,15 @@ def check_values_from_profile(body):
     
     ...
     
+def valid_profile_kid():
+    from app.models.profile_model import ProfileModel
+    
+    profile_id = request.get_json()["profile_id"]
+    profile = ProfileModel.query.filter_by(id = profile_id).first()
+    if not profile:
+        return jsonify({"error": "Profile not found"}), HTTPStatus.NOT_FOUND
+    
+    # if not profile in user.profiles:
+    #     return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+    
+    return profile.kids
