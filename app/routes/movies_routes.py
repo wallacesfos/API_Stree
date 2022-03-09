@@ -13,7 +13,8 @@ from app.controllers.movies_controller import (
     remove_from_gender,
     get_movie_by_id,
     get_movies_by_genre,
-    get_movies_by_name
+    get_movies_by_name,
+    post_favorite
 )
 
 bp_movies = Blueprint("movies", __name__, url_prefix="/movies")
@@ -28,4 +29,5 @@ bp_movies.post('/gender')(add_to_gender)
 bp_movies.get("/<int:id>")(get_movie_by_id)
 bp_movies.get('/<genre_name>')(get_movies_by_genre)
 bp_movies.get("/<int:profile_id>/<title>")(get_movies_by_name)
+bp_movies.post("/favorite")(post_favorite)
 

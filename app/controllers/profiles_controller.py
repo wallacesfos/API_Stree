@@ -105,11 +105,18 @@ def delete_profile(id):
 
 @jwt_required()
 def favorites_movies(id: int):
+    identity = get_jwt_identity()
+
     try:
         profile = ProfileModel.query.filter_by(id=id).first_or_404("Profile not found")
 
+        
+
     except NotFound as error:
         return {"error": error.description}, HTTPStatus.NOT_FOUND
+    
+    if profile.user_id != identity['id']:
+            return {"error": "Profile not exists"}, HTTPStatus.NOT_FOUND
 
     return jsonify(profile.movies), HTTPStatus.OK
 

@@ -292,7 +292,7 @@ def remove_favorite():
     
     return jsonify({}), HTTPStatus.NO_CONTENT
   
-@jwt_required
+@jwt_required()
 def get_movie_by_id(id):    
     movie = MoviesModel.query.get(id)
 
