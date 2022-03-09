@@ -136,25 +136,16 @@ def get_appropriated_movie(profile_id: int):
         return {"Message": e.description}, e.code
       
 @jwt_required()
-def get_movies_by_name(profile_id: int, title: str):
-    try:
-        movies = MoviesModel.query.filter_by(MoviesModel.name.ilike(f"%{title}%")).all()
+def get_movies_by_name():
+    movie_name = request.args.get("name")
 
-        profile = ProfileModel.query.filter(id=profile_id).first()
+    movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{movie_name}%")).all()
+    
+    if not movies:
+        return {"message": "Any movies were found"}, HTTPStatus.NOT_FOUND
 
-        if not profile:
-            return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
 
-        if profile.kids:
-            return jsonify([movie for movie in movies if movie.classification <= 13]), HTTPStatus.OK
-
-        if not movies:
-            raise EmptyListError
-
-        return jsonify(movies), HTTPStatus.OK
-    except EmptyListError as e:
-        return {"error": e.description}, e.code
-
+    return jsonify(movies),HTTPStatus.OK
 
 @jwt_required()
 def add_to_gender():
