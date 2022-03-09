@@ -317,27 +317,11 @@ def remove_from_gender():
 
 
 @jwt_required()
-def get_series_by_genre(profile_id: int):
-    try:
-        profile = ProfileModel.query.filter_by(id = profile_id).first_or_404("Profile not found")
+def get_series_by_genre(genre_name: str):
 
-        request_genre = request.args.get('genre', None)
-        if request_genre:
-            series = find_by_genre(request_genre)
+    series = find_by_genre(genre_name)
 
-        if profile.kids and request_genre:
-            filtered_list = [serie for serie in series if serie.classification <= 13]
-            if not filtered_list: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(filtered_list), HTTPStatus.OK
-
-        elif profile.kids:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
-            if not series: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(series), HTTPStatus.OK
-        
-        elif request_genre:
-            return jsonify(series), HTTPStatus.OK
-
+    return series
         else:
             series = SeriesModel.query.all()
             if not series: raise EmptyListError(description="There is no series to watch")
@@ -345,69 +329,4 @@ def get_series_by_genre(profile_id: int):
         
     except EmptyListError as e:
         return {"Message": e.description}, e.code
-
-
-@jwt_required()
-def add_to_gender():
-    data = request.get_json()
-
-    try:
-        analyze_keys(["gender_id", "serie_id"], data)
-
-        administer = get_jwt_identity()
-
-        if not administer["administer"]:
-            raise PermissionError
-            
-
-        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
-        serie.genders.append(gender)
-        current_app.db.session.add(serie)
-        current_app.db.session.commit()
-
-        return {}, HTTPStatus.NO_CONTENT
-
-    except NotFound as e:
-        return {"error": e.description}, HTTPStatus.NOT_FOUND
-
-    except KeyError as e:
-        return {"error": e.args[0]}, 400
-    
-    except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
-
-
-
-@jwt_required()
-def remove_from_gender():
-    data = request.get_json()
-    try:
-        analyze_keys(["gender_id", "serie_id"], data)
-        
-        administer = get_jwt_identity()
-
-        if not administer["administer"]:
-            raise PermissionError
-            
-        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
-        serie.genders.pop(gender)
-        current_app.db.session.add(serie)
-        current_app.db.session.commit()
-
-        return {}, HTTPStatus.NO_CONTENT
-    
-    except ValueError:
-        return {"error": "This serie does not belong to the genre"}, HTTPStatus.BAD_REQUEST
-
-    except NotFound as e:
-        return {"error": e.description}, HTTPStatus.NOT_FOUND
-
-    except KeyError as e:
-        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
-        
-    except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
-    
 
