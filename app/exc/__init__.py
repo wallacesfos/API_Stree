@@ -6,3 +6,9 @@ class PermissionError(Unauthorized):
 
 class EmptyListError(NotFound): ...
 
+class InvalidProfileError(Exception):
+    ...
+    
+class NotFoundError(Exception):
+    ...
+    
