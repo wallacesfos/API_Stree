@@ -11,7 +11,7 @@ from app.controllers.movies_controller import (
     get_most_recent_movies,
     get_most_seen_movies,
     remove_from_gender,
-    get_movies_by_genre
+    get_movies_by_genre,
     get_movies_by_name
 )
 
