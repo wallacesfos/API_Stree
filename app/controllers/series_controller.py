@@ -171,18 +171,11 @@ def series_recents():
 @jwt_required()
 def get_appropriated_series(profile_id: int):
     try:
-        profile = ProfileModel.query.filter_by(id = profile_id).first()
-        if not profile:
-            return {"error": "Profile not found."}
+        if not valid_profile_kid():
+            series = SeriesModel.query.all()
+        else:
+            series = SeriesModel.query.filter(SeriesModel.classification <= 12).all()
 
-        if profile.kids:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
-            
-            if not series: 
-                raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(series), HTTPStatus.OK
-
-        series = SeriesModel.query.all()
         if not series: 
             raise EmptyListError(description="There is no series to watch")
 
