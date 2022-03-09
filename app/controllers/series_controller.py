@@ -11,6 +11,7 @@ from http import HTTPStatus
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
 from app.models.profile_model import ProfileModel
+from app.models.gender_model import GendersModel
 
 
 @jwt_required()
@@ -201,7 +202,7 @@ def delete_serie(id):
         return {}, 204
 
     except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
   
     
 @jwt_required()
@@ -321,4 +322,11 @@ def get_series_by_genre(genre_name: str):
     series = find_by_genre(genre_name)
 
     return series
+        else:
+            series = SeriesModel.query.all()
+            if not series: raise EmptyListError(description="There is no series to watch")
+            return jsonify(series), HTTPStatus.OK
+        
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
 
