@@ -2,7 +2,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
 from http import HTTPStatus
 
-from app.utils import find_by_genre, analyze_keys
+from app.utils import find_by_genre, analyze_keys, valid_profile_kid
 from werkzeug.exceptions import NotFound
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
@@ -105,7 +105,7 @@ def update_movie(id: int):
         current_app.db.session.commit()
 
     except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
 
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
@@ -158,7 +158,8 @@ def get_appropriated_movie(profile_id: int):
     
     except EmptyListError as e:
         return {"Message": e.description}, e.code
-      
+
+
 @jwt_required()
 def get_movies_by_name():
     movie_name = request.args.get("name")
@@ -170,6 +171,7 @@ def get_movies_by_name():
 
 
     return jsonify(movies),HTTPStatus.OK
+
 
 @jwt_required()
 def add_to_gender():
@@ -200,6 +202,7 @@ def add_to_gender():
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
     return {}, HTTPStatus.NO_CONTENT
+
 
 @jwt_required()
 def remove_from_gender():
@@ -241,6 +244,7 @@ def get_movies():
 
     return jsonify(movies), HTTPStatus.OK
 
+
 @jwt_required()
 def post_favorite():
     try:
@@ -265,7 +269,6 @@ def post_favorite():
     return jsonify({}), HTTPStatus.NO_CONTENT
 
 
-
 @jwt_required()
 def remove_favorite():
     try:
@@ -274,12 +277,12 @@ def remove_favorite():
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
-            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.UNAUTHORIZED
         
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("movie not found")
         
         if not movie in profile.movies:
-            return jsonify({"error": "movie not found in profile"}), HTTPStatus.NOT_FOUND
+            return jsonify({"error": "Movie not found in profile"}), HTTPStatus.NOT_FOUND
         
         remove = profile.movies.index(movie)
         profile.movies.pop(remove)
@@ -291,9 +294,14 @@ def remove_favorite():
     
     return jsonify({}), HTTPStatus.NO_CONTENT
   
+
 @jwt_required()
-def get_movie_by_id(id):    
-    movie = MoviesModel.query.get(id)
+def get_movie_by_id(id):
+
+    if not valid_profile_kid():
+        movie = MoviesModel.query.get(id)
+    else:
+        movie = MoviesModel.query.filter(MoviesModel.classification <= 12).get(id)
 
     if not movie:
         return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
