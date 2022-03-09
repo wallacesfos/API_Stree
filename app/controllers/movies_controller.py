@@ -14,6 +14,7 @@ from app.exc import EmptyListError
 from app.models.movies_model import MoviesModel
 from app.models.profile_model import ProfileModel
 from app.models.gender_model import GendersModel
+from app.models.user_model import UserModel
 
 
 @jwt_required()
@@ -146,38 +147,29 @@ def get_appropriated_movie(profile_id: int):
             return {"error": "Profile not found."}
 
         if profile.kids:
-            series = MoviesModel.query.filter(MoviesModel.classification <= 13).all()
-            if not series: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(series), HTTPStatus.OK
+            movies = MoviesModel.query.filter(MoviesModel.classification <= 13).all()
+            if not movies: raise EmptyListError(description="There is no appropriated movies to watch")
+            return jsonify(movies), HTTPStatus.OK
 
-        series = MoviesModel.query.all()
-        if not series: raise EmptyListError(description="There is no series to watch")
+        movies = MoviesModel.query.all()
+        if not movies: raise EmptyListError(description="There is no movies to watch")
 
-        return jsonify(series), HTTPStatus.OK
+        return jsonify(movies), HTTPStatus.OK
     
     except EmptyListError as e:
         return {"Message": e.description}, e.code
       
 @jwt_required()
-def get_movies_by_name(profile_id: int, title: str):
-    try:
-        movies = MoviesModel.query.filter_by(MoviesModel.name.ilike(f"%{title}%")).all()
+def get_movies_by_name():
+    movie_name = request.args.get("name")
 
-        profile = ProfileModel.query.filter(id=profile_id).first()
+    movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{movie_name}%")).all()
+    
+    if not movies:
+        return {"message": "Any movies were found"}, HTTPStatus.NOT_FOUND
 
-        if not profile:
-            return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
 
-        if profile.kids:
-            return jsonify([movie for movie in movies if movie.classification <= 13]), HTTPStatus.OK
-
-        if not movies:
-            raise EmptyListError
-
-        return jsonify(movies), HTTPStatus.OK
-    except EmptyListError as e:
-        return {"error": e.description}, e.code
-
+    return jsonify(movies),HTTPStatus.OK
 
 @jwt_required()
 def add_to_gender():
@@ -234,13 +226,82 @@ def remove_from_gender():
         return {"error": e.description}, HTTPStatus.NOT_FOUND
 
     except KeyError as e:
-        return {"error": e.args[0]}, 400
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
         
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
     return {}, HTTPStatus.OK
 
+  
+@jwt_required()
+def get_movies():
+
+    movies = MoviesModel.query.all()
+
+    return jsonify(movies), HTTPStatus.OK
+
+@jwt_required()
+def post_favorite():
+    try:
+        data = request.get_json()
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+        
+        if not profile in user.profiles:
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+        
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("movie not found")
+        if movie in profile.movies:
+            return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT
+        
+        profile.movies.append(movie)
+        current_app.db.session.add(profile)
+        current_app.db.session.commit()
+
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+    
+    return jsonify({}), HTTPStatus.NO_CONTENT
+
+
+
+@jwt_required()
+def remove_favorite():
+    try:
+        data = request.get_json()
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
+        
+        if not profile in user.profiles:
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+        
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("movie not found")
+        
+        if not movie in profile.movies:
+            return jsonify({"error": "movie not found in profile"}), HTTPStatus.NOT_FOUND
+        
+        remove = profile.movies.index(movie)
+        profile.movies.pop(remove)
+        current_app.db.session.add(profile)
+        current_app.db.session.commit()
+    
+    except Exception as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
+    
+    return jsonify({}), HTTPStatus.NO_CONTENT
+  
+@jwt_required()
+def get_movie_by_id(id):    
+    movie = MoviesModel.query.get(id)
+
+    if not movie:
+        return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
+
+    movie.views += 1
+    current_app.db.session.commit()
+    
+    return jsonify(movie), HTTPStatus.OK
 
 
 @jwt_required()

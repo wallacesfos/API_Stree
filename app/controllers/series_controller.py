@@ -96,6 +96,9 @@ def get_serie_by_id(id):
         ]
     }
 
+    serie.views += 1
+    current_app.db.session.commit()
+
     return jsonify(serie_serializer), HTTPStatus.OK
 
 @jwt_required()
@@ -216,6 +219,9 @@ def post_favorite():
             return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
         
         serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+        if serie in profile.series:
+            return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT
+        
         profile.series.append(serie)
         current_app.db.session.add(profile)
         current_app.db.session.commit()
@@ -275,7 +281,7 @@ def add_to_gender():
         return {"error": e.description}, HTTPStatus.NOT_FOUND
 
     except KeyError as e:
-        return {"error": e.args[0]}, 400
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
         
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
