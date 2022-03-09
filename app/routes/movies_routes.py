@@ -11,6 +11,7 @@ from app.controllers.movies_controller import (
     get_most_recent_movies,
     get_most_seen_movies,
     remove_from_gender,
+    get_movies,
     get_movie_by_id,
     get_movies_by_genre,
     get_movies_by_name,
@@ -19,6 +20,7 @@ from app.controllers.movies_controller import (
 
 bp_movies = Blueprint("movies", __name__, url_prefix="/movies")
 
+bp_movies.get("")(get_movies)
 bp_movies.get("/")(get_movies_by_name)
 bp_movies.get("/most_seen")(get_most_seen_movies)
 bp_movies.get("/most_recent")(get_most_recent_movies)
@@ -30,4 +32,3 @@ bp_movies.post('/gender')(add_to_gender)
 bp_movies.get("/<int:id>")(get_movie_by_id)
 bp_movies.get('/<genre_name>')(get_movies_by_genre)
 bp_movies.post("/favorite")(post_favorite)
-
