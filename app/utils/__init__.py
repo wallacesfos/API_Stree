@@ -82,15 +82,17 @@ def check_values_from_profile(body):
     
     ...
     
-def valid_profile_kid():
+def valid_profile_kid(user):
     from app.models.profile_model import ProfileModel
+    from app.exc import InvalidProfileError, NotFoundError
     
     profile_id = request.get_json()["profile_id"]
     profile = ProfileModel.query.filter_by(id = profile_id).first()
+        
     if not profile:
-        return jsonify({"error": "Profile not found"}), HTTPStatus.NOT_FOUND
+        raise NotFoundError()
     
-    # if not profile in user.profiles:
-    #     return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
-    
+    if not profile in user.profiles:
+        raise InvalidProfileError()
+        
     return profile.kids

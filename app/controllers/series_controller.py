@@ -4,7 +4,7 @@ from flask import request, current_app, jsonify
 from app import exc
 
 from app.utils import analyze_keys, find_by_genre, valid_profile_kid, serializer
-from app.exc import PermissionError, EmptyListError
+from app.exc import PermissionError, EmptyListError, InvalidProfileError, NotFoundError
 from sqlalchemy import and_
 from werkzeug.exceptions import NotFound
 
@@ -57,11 +57,11 @@ def create_serie():
 @jwt_required()
 def get_series():
     try:
-        if not valid_profile_kid():
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
             series = SeriesModel.query.all()
         else:
             series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
-
         if not series:
             return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
             
@@ -70,10 +70,17 @@ def get_series():
     except EmptyListError as e:
         return {"Message": e.description}, e.code
 
+    except NotFoundError:
+        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
+    
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        
 
 @jwt_required()
 def get_serie_by_id(id):
-    if not valid_profile_kid():
+    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+    if not valid_profile_kid(user):
         serie = SeriesModel.query.filter_by(id=id).first()
     else:
         serie = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.id == id)).first()
@@ -114,8 +121,8 @@ def get_serie_by_id(id):
 @jwt_required()
 def get_serie_by_name():
     series_name = request.args.get("name")
-    
-    if not valid_profile_kid():
+    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+    if not valid_profile_kid(user):
         series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
     else:
         series = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.name.ilike(f"%{series_name}%"))).all()
@@ -150,7 +157,8 @@ def get_serie_by_name():
 
 @jwt_required()
 def get_serie_most_seen():
-    if not valid_profile_kid():
+    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+    if not valid_profile_kid(user):
         series = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
     else:
         series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.views.desc()).limit(5).all()
@@ -160,7 +168,8 @@ def get_serie_most_seen():
 
 @jwt_required()
 def series_recents():
-    if not valid_profile_kid():
+    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+    if not valid_profile_kid(user):
         series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
     else:
         series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.created_at.desc()).all()
@@ -171,7 +180,8 @@ def series_recents():
 @jwt_required()
 def get_appropriated_series(profile_id: int):
     try:
-        if not valid_profile_kid():
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
             series = SeriesModel.query.all()
         else:
             series = SeriesModel.query.filter(SeriesModel.classification <= 12).all()
@@ -230,7 +240,8 @@ def post_favorite():
             return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
 #TODO até aqui
 
-        if not valid_profile_kid():
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
             serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
         else:
             serie = SeriesModel.query.filter(and_(SeriesModel.id == data["serie_id"], SeriesModel.classification <= 12)).first_or_404("Serie not found")
