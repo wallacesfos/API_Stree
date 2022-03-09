@@ -322,11 +322,5 @@ def get_series_by_genre(genre_name: str):
     series = find_by_genre(genre_name)
 
     return series
-        else:
-            series = SeriesModel.query.all()
-            if not series: raise EmptyListError(description="There is no series to watch")
-            return jsonify(series), HTTPStatus.OK
-        
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
+       
 
