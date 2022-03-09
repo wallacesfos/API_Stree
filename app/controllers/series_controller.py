@@ -281,7 +281,7 @@ def add_to_gender():
         return {"error": e.description}, HTTPStatus.NOT_FOUND
 
     except KeyError as e:
-        return {"error": e.args[0]}, 400
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
         
     except Exception:
         return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
