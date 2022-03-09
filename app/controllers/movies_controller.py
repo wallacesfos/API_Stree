@@ -6,6 +6,7 @@ from app.utils import find_by_genre, analyze_keys, valid_profile_kid
 from werkzeug.exceptions import NotFound
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
+from sqlalchemy import and_
 
 
 from datetime import datetime as dt
@@ -114,14 +115,23 @@ def update_movie(id: int):
 
 @jwt_required()
 def get_most_seen_movies():
-    movies_most_seen = MoviesModel.query.order_by(MoviesModel.views.desc()).limit(5).all()
-   
+
+    if not valid_profile_kid():
+        movies_most_seen = MoviesModel.query.order_by(MoviesModel.views.desc()).limit(5).all()
+    else:
+        movies_most_seen = MoviesModel.query.filter(MoviesModel.classification <=12).order_by(MoviesModel.views.desc()).limit(5).all()
+
     
     return jsonify(movies_most_seen), HTTPStatus.OK
 
 @jwt_required()
 def get_most_recent_movies():
-    movies = MoviesModel.query.all()
+
+    if not valid_profile_kid():
+        movies = MoviesModel.query.all()
+    else:
+        movies = MoviesModel.query.filter(MoviesModel.classification <=12).all()
+
     released_date_list = [{
         'id': m.id,
         'diff_days': (dt.now() - m.released_date).days
@@ -161,24 +171,27 @@ def get_appropriated_movie(profile_id: int):
 
 
 @jwt_required()
-def get_movies_by_name():
-    movie_name = request.args.get("name")
+def get_movies_by_name(name: str):
 
-    movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{movie_name}%")).all()
-    
+    if not valid_profile_kid():
+        movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{name}%")).all()
+    else:
+        movies = MoviesModel.query.filter(and_(MoviesModel.name.ilike(f"%{name}%"), MoviesModel.classification <= 12)).all()
+
+
     if not movies:
-        return {"message": "Any movies were found"}, HTTPStatus.NOT_FOUND
+        return {"message": "Any movies were found or could be inappropriated"}, HTTPStatus.NOT_FOUND
 
 
     return jsonify(movies),HTTPStatus.OK
 
 
 @jwt_required()
-def add_to_gender():
+def add_to_genre():
     data = request.get_json()
 
     try:
-        analyze_keys(["gender_id", "movie_id"], data)
+        analyze_keys(["genre_id", "movie_id"], data)
 
         administer = get_jwt_identity()
 
@@ -187,7 +200,7 @@ def add_to_gender():
             
 
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Genre not found")
         movie.genders.append(gender)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
@@ -223,7 +236,7 @@ def remove_from_gender():
         current_app.db.session.commit()
     
     except ValueError:
-        return {"error": "film does not belong to the genre"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Movie does not belong to the genre"}, HTTPStatus.NOT_FOUND
 
     except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
@@ -239,8 +252,11 @@ def remove_from_gender():
   
 @jwt_required()
 def get_movies():
-
-    movies = MoviesModel.query.all()
+    
+    if not valid_profile_kid():
+        movies = MoviesModel.query.all()
+    else:
+        movies = MoviesModel.query.filter(MoviesModel.classification <=12).all()
 
     return jsonify(movies), HTTPStatus.OK
 
@@ -301,10 +317,10 @@ def get_movie_by_id(id):
     if not valid_profile_kid():
         movie = MoviesModel.query.get(id)
     else:
-        movie = MoviesModel.query.filter(MoviesModel.classification <= 12).get(id)
+        movie = MoviesModel.query.filter(and_(MoviesModel.classification <= 12, MoviesModel.id ==id)).first()
 
     if not movie:
-        return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
+        return {"message": "Movie not found or inappropriate"}, HTTPStatus.NOT_FOUND
 
     movie.views += 1
     current_app.db.session.commit()

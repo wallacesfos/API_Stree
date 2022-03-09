@@ -1,7 +1,7 @@
 from flask import Blueprint
 
 from app.controllers.movies_controller import (
-    add_to_gender,
+    add_to_genre,
     create_movie,
     delete_movie,
     get_most_recent_movies,
@@ -18,13 +18,13 @@ from app.controllers.movies_controller import (
 bp_movies = Blueprint("movies", __name__, url_prefix="/movies")
 
 bp_movies.post("")(create_movie)
-bp_movies.post('/gender')(add_to_gender)
+bp_movies.post('/genre')(add_to_genre)
 bp_movies.post("/favorite")(post_favorite)
 
 bp_movies.get("")(get_movies)
 bp_movies.get("/<int:id>")(get_movie_by_id)
-bp_movies.get("/name/<name>")(get_movies_by_name)
 bp_movies.get('/genre/<genre_name>')(get_movies_by_genre)
+bp_movies.get("/name/<name>")(get_movies_by_name)
 bp_movies.get("/most_seen")(get_most_seen_movies)
 bp_movies.get("/most_recent")(get_most_recent_movies)
 

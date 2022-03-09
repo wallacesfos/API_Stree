@@ -60,7 +60,7 @@ GET - /movies/<int:id>                              Um filme referente ao id des
 
 PATCH - /movies/<int:id>                            Atualiza informações do filme de id indicado
 
-DELETE - /movies/id/<int:id>                        Deleta o filme de id indicado
+DELETE - /movies/<int:id>                           Deleta o filme de id indicado
 DELETE - /movies/gender                             Remove um filme de um gênero
 DELETE - /movies/favorite                           Remove um filme dos favoritos de um perfil
 
