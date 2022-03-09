@@ -1,12 +1,12 @@
 from http import HTTPStatus
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
-from app.models.gender_model import GendersModel
+from app import exc
 
-from app.utils import analyze_keys, find_by_genre, serializer
+from app.utils import analyze_keys, find_by_genre, valid_profile_kid, serializer
 from app.exc import PermissionError, EmptyListError
+from sqlalchemy import and_
 from werkzeug.exceptions import NotFound
-from http import HTTPStatus
 
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
@@ -56,19 +56,28 @@ def create_serie():
 
 @jwt_required()
 def get_series():
-    series = SeriesModel.query.all()
+    try:
+        if valid_profile_kid():
+            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
+        else:
+            series = SeriesModel.query.all()
 
-    if not series:
-        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
-
-    serie_serializer = serializer(series)
-
-    return jsonify(serie_serializer), HTTPStatus.OK
+        if not series:
+            return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+            
+        return jsonify(serializer(series)), HTTPStatus.OK
+    
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
 
 
 @jwt_required()
 def get_serie_by_id(id):
-    serie = SeriesModel.query.filter_by(id=id).first()
+    if not valid_profile_kid():
+        serie = SeriesModel.query.filter_by(id=id).first()
+    else:
+        serie = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.id == id)).first()
+
 
     if not serie:
         return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
@@ -101,17 +110,20 @@ def get_serie_by_id(id):
 
     return jsonify(serie_serializer), HTTPStatus.OK
 
+
 @jwt_required()
 def get_serie_by_name():
-    serie_name = request.args.get("name")
-    serie_name = serie_name.title()
-  
-    serie = SeriesModel.query.filter_by(name=serie_name).first()
+    series_name = request.args.get("name")
     
-    if not serie:
+    if not valid_profile_kid():
+        series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
+    else:
+        series = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.name.ilike(f"%{series_name}%"))).all()
+    
+    if not series:
         return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
 
-    serie_serializer = {
+    serie_serializer = [{
         "id": serie.id,
         "name": serie.name,
         "description": serie.description,
@@ -132,25 +144,29 @@ def get_serie_by_name():
                 "episode": episode.episode
             }for episode in serie.episodes
         ]
-    }
+    }for serie in series]
 
     return jsonify(serie_serializer),HTTPStatus.OK
 
 @jwt_required()
 def get_serie_most_seen():
-    series_most_seen = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
+    if not valid_profile_kid():
+        series = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
+    else:
+        series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.views.desc()).limit(5).all()
     
-    serie_serializer = serializer(series_most_seen)
     
-    return jsonify(serie_serializer), HTTPStatus.OK
+    return jsonify(serializer(series)), HTTPStatus.OK
 
 @jwt_required()
 def series_recents():
-    series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
+    if not valid_profile_kid():
+        series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
+    else:
+        series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.created_at.desc()).all()
     
-    serie_serializer = serializer(series)
     
-    return jsonify(serie_serializer), HTTPStatus.OK
+    return jsonify(serializer(series)), HTTPStatus.OK
 
 @jwt_required()
 def get_appropriated_series(profile_id: int):
@@ -213,12 +229,19 @@ def post_favorite():
     try:
         data = request.get_json()
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+
+#TODO precisa levar esse código para valid_profile_kid, daqui:
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
             return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+#TODO até aqui
+
+        if not valid_profile_kid():
+            serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
+        else:
+            serie = SeriesModel.query.filter(and_(SeriesModel.id == data["serie_id"], SeriesModel.classification <= 12)).first_or_404("Serie not found")
         
-        serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
         if serie in profile.series:
             return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT
         
