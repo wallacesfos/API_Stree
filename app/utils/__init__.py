@@ -62,4 +62,9 @@ def serializer(series):
         } for serie in series]
     return serie_serializer
         
-        
+
+
+def check_values_from_profile(body):
+    
+    ...
+    
