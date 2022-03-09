@@ -11,6 +11,7 @@ from http import HTTPStatus
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
 from app.models.profile_model import ProfileModel
+from app.models.gender_model import GendersModel
 
 
 @jwt_required()
@@ -94,6 +95,9 @@ def get_serie_by_id(id):
             }for episode in serie.episodes
         ]
     }
+
+    serie.views += 1
+    current_app.db.session.commit()
 
     return jsonify(serie_serializer), HTTPStatus.OK
 
@@ -201,7 +205,7 @@ def delete_serie(id):
         return {}, 204
 
     except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
   
     
 @jwt_required()
@@ -319,33 +323,41 @@ def remove_from_gender():
 
 
 @jwt_required()
-def get_series_by_genre(profile_id: int):
+def get_series_by_genre(genre_name: str):
+
+    series = find_by_genre(genre_name)
+
+    return series
+
+
+@jwt_required()
+def update_serie(id: int):
     try:
-        profile = ProfileModel.query.filter_by(id = profile_id).first_or_404("Profile not found")
+        serie: SeriesModel = SeriesModel.query.filter_by(id=id)
+        data = request.get_json()
 
-        request_genre = request.args.get('genre', None)
-        if request_genre:
-            series = find_by_genre(request_genre)
+        keys = [
+        "image",
+        "description", 
+        "seasons", 
+        "subtitle", 
+        "dubbed", 
+        "trailer", 
+        "classification"]
 
-        if profile.kids and request_genre:
-            filtered_list = [serie for serie in series if serie.classification <= 13]
-            if not filtered_list: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(filtered_list), HTTPStatus.OK
+        analyze_keys(keys, data, 'update')
 
-        elif profile.kids:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
-            if not series: raise EmptyListError(description="There is no appropriated series to watch")
-            return jsonify(series), HTTPStatus.OK
+        if not serie:
+            return {"error": "Movie not found."}, HTTPStatus.NOT_FOUND
         
-        elif request_genre:
-            return jsonify(series), HTTPStatus.OK
+        serie.update(data, synchronize_session="fetch")
+        current_app.db.session.commit()
+     
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
 
-        else:
-            series = SeriesModel.query.all()
-            if not series: raise EmptyListError(description="There is no series to watch")
-            return jsonify(series), HTTPStatus.OK
-        
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
+    except KeyError as e:
+        return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
     
-
+    return {}, HTTPStatus.NO_CONTENT
+    

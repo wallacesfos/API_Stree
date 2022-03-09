@@ -13,7 +13,8 @@ from app.controllers.series_controller import (
     remove_favorite,
     get_appropriated_series,
     get_series_by_genre,
-    remove_from_gender
+    remove_from_gender,
+    update_serie
 )
 
 
@@ -23,7 +24,7 @@ bp_series = Blueprint("series", __name__, url_prefix="/series")
 bp_series.post("")(create_serie)
 bp_series.get("")(get_series)
 bp_series.get("/<int:id>")(get_serie_by_id)
-bp_series.get("/profile/<int:profile_id>/")(get_series_by_genre)
+bp_series.get("/<genre_name>")(get_series_by_genre)
 bp_series.get("/profile/<int:profile_id>")(get_appropriated_series)
 bp_series.get("/recents")(series_recents)
 bp_series.get("/most_seen")(get_serie_most_seen)
@@ -31,7 +32,7 @@ bp_series.get("/")(get_serie_by_name)
 bp_series.post('/favorite')(post_favorite)
 bp_series.delete("/<int:id>")(delete_serie)
 bp_series.delete('/favorite')(remove_favorite)
-bp_series.post('/gender')(add_to_gender)
 bp_series.delete('/gender')(remove_from_gender)
-
+bp_series.patch('/<int:id>')(update_serie)
+bp_series.post('/gender')(add_to_gender)
 
