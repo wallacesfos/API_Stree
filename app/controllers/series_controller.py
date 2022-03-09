@@ -65,7 +65,7 @@ def get_series():
         if not series:
             return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
             
-        return jsonify(serializer(series)), HTTPStatus.OK
+        return jsonify(series), HTTPStatus.OK
     
     except EmptyListError as e:
         return {"Message": e.description}, e.code
@@ -123,30 +123,8 @@ def get_serie_by_name():
     if not series:
         return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
 
-    serie_serializer = [{
-        "id": serie.id,
-        "name": serie.name,
-        "description": serie.description,
-        "image": serie.image,
-        "seasons": serie.seasons,
-        "trailer": serie.trailer,
-        "created_at": serie.created_at,
-        "views": serie.views,
-        "dubbed": serie.dubbed,
-        "subtitle": serie.subtitle,
-        "classification": serie.classification,
-        "released_date": serie.released_date,
-        "gender": serie.genders,
-        "episodes": [
-            {
-                "season": episode.season, 
-                "link": episode.link, 
-                "episode": episode.episode
-            }for episode in serie.episodes
-        ]
-    }for serie in series]
 
-    return jsonify(serie_serializer),HTTPStatus.OK
+    return jsonify(series),HTTPStatus.OK
 
 @jwt_required()
 def get_serie_most_seen():
@@ -156,7 +134,7 @@ def get_serie_most_seen():
         series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.views.desc()).limit(5).all()
     
     
-    return jsonify(serializer(series)), HTTPStatus.OK
+    return jsonify(series), HTTPStatus.OK
 
 @jwt_required()
 def series_recents():
@@ -166,7 +144,7 @@ def series_recents():
         series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.created_at.desc()).all()
     
     
-    return jsonify(serializer(series)), HTTPStatus.OK
+    return jsonify(series), HTTPStatus.OK
 
 @jwt_required()
 def get_appropriated_series(profile_id: int):
