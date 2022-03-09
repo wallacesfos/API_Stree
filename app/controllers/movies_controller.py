@@ -241,6 +241,17 @@ def remove_from_gender():
     
     return {}, HTTPStatus.OK
 
+@jwt_required()
+def get_movie_by_id(id):    
+    movie = MoviesModel.query.get(id)
+
+    if not movie:
+        return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
+
+    movie.views += 1
+    current_app.db.session.commit()
+    
+    return jsonify(movie), HTTPStatus.OK
 
 
 @jwt_required()
