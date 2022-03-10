@@ -1,5 +1,16 @@
 from http import HTTPStatus
 from flask import jsonify, request
+from flask_jwt_extended import get_jwt_identity
+
+from app.models.movies_model import MoviesModel
+from app.models.gender_model import GendersModel
+from app.models.series_model import SeriesModel
+from app.models.user_model import UserModel
+from app.models.movies_genders_model import movies_genders
+from app.models.series_genders_model import series_genders
+from app.configs.database import db
+from sqlalchemy import and_
+
 
 
 recorver_email_list = []
@@ -20,18 +31,25 @@ def analyze_keys(keys, request, type=None):
 
 
 def find_by_genre(name: str, video_type: str = "series"):
-
-    from app.models.gender_model import GendersModel
-    
     try:
-        genre_id = GendersModel.query.filter(GendersModel.gender.ilike(f"{name}")).first()
+        user = get_jwt_identity()
+        user_model = UserModel.query.filter(UserModel.email.ilike(user['email']) ).first()
         
         if video_type == "movies":
-#TODO precisamos pensar em um jeito de pegar genre.movies e verificar a classificação
-            return jsonify(genre_id.movies), HTTPStatus.OK
+            if not valid_profile_kid():
+                movies = db.session.query(MoviesModel).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(GendersModel.gender.ilike(f"%{name}%")).all()
+                return jsonify(movies)
+            else:
+                movies = db.session.query(MoviesModel).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(and_(GendersModel.gender.ilike(f"%{name}%"), MoviesModel.classification <= 12)).all()
+                return jsonify(movies)
+
         else:
-#TODO precisamos pensar em um jeito de pegar genre.series e verificar a classificação
-            return jsonify(genre_id.series), HTTPStatus.OK
+            if not valid_profile_kid(user_model):
+                series = db.session.query(SeriesModel).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(GendersModel.gender.ilike(f"%{name}%")).all()
+                return jsonify(series)
+            else:
+                series = db.session.query(SeriesModel).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(and_(GendersModel.gender.ilike(f"%{name}%"), SeriesModel.classification <= 12)).all()
+                return jsonify(series)
     
     except AttributeError:
         return {"Error": "Genre not found"}, HTTPStatus.NOT_FOUND
