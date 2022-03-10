@@ -72,7 +72,7 @@ def get_series():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
     
     except EmptyListError as e:
         return {"Message": e.description}, e.code
@@ -100,7 +100,7 @@ def get_serie_by_id(id):
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
 
 
 @jwt_required()
@@ -120,7 +120,7 @@ def get_serie_by_name():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
     
     except BadRequestKeyError:
         return {"error": "The query 'name' is necessary to search by name"}, HTTPStatus.BAD_REQUEST
