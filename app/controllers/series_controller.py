@@ -8,11 +8,11 @@ from app.exc import PermissionError, EmptyListError, InvalidProfileError, NotFou
 from sqlalchemy import and_
 from werkzeug.exceptions import NotFound
 
+from app.configs.var_age import AGE_KIDS
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
 from app.models.profile_model import ProfileModel
 from app.models.gender_model import GendersModel
-
 
 @jwt_required()
 def create_serie():
@@ -61,7 +61,7 @@ def get_series():
         if not valid_profile_kid(user):
             series = SeriesModel.query.all()
         else:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 13).all()
+            series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).all()
         if not series:
             return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
             
@@ -85,7 +85,7 @@ def get_serie_by_id(id):
         if not valid_profile_kid(user):
             serie = SeriesModel.query.filter_by(id=id).first()
         else:
-            serie = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.id == id)).first()
+            serie = SeriesModel.query.filter(and_(SeriesModel.classification <= AGE_KIDS, SeriesModel.id == id)).first()
 
 
         if not serie:
@@ -111,7 +111,7 @@ def get_serie_by_name():
         if not valid_profile_kid(user):
             series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
         else:
-            series = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.name.ilike(f"%{series_name}%"))).all()
+            series = SeriesModel.query.filter(and_(SeriesModel.classification <= AGE_KIDS, SeriesModel.name.ilike(f"%{series_name}%"))).all()
         
         if not series:
             return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
@@ -136,7 +136,7 @@ def get_serie_most_seen():
         if not valid_profile_kid(user):
             series = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
         else:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.views.desc()).limit(5).all()
+            series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).order_by(SeriesModel.views.desc()).limit(5).all()
         
 
         return jsonify(serializer_series(series)), HTTPStatus.OK
@@ -155,7 +155,7 @@ def series_recents():
         if not valid_profile_kid(user):
             series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
         else:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.created_at.desc()).all()
+            series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).order_by(SeriesModel.created_at.desc()).all()
         
         
         return jsonify(serializer_series(series)), HTTPStatus.OK
@@ -174,7 +174,7 @@ def get_appropriated_series(profile_id: int):
         if not valid_profile_kid(user):
             series = SeriesModel.query.all()
         else:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 12).all()
+            series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).all()
 
         if not series: 
             raise EmptyListError(description="There is no series to watch")
@@ -240,7 +240,7 @@ def post_favorite():
         if not valid_profile_kid(user):
             serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
         else:
-            serie = SeriesModel.query.filter(and_(SeriesModel.id == data["serie_id"], SeriesModel.classification <= 12)).first_or_404("Serie not found")
+            serie = SeriesModel.query.filter(and_(SeriesModel.id == data["serie_id"], SeriesModel.classification <= AGE_KIDS)).first_or_404("Serie not found")
         
         if serie in profile.series:
             return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT

@@ -8,6 +8,7 @@ from psycopg2.errors import UniqueViolation
 from app.exc import EmptyListError, NotFoundError, InvalidProfileError
 
 from app.utils import find_by_genre, analyze_keys, valid_profile_kid, serializer_movies, serializer_movie
+from app.configs.var_age import AGE_KIDS
 from app.models.gender_model import GendersModel
 from app.models.movies_model import MoviesModel
 from app.models.profile_model import ProfileModel
@@ -63,7 +64,7 @@ def get_movies():
         if not valid_profile_kid(user):
             movies = MoviesModel.query.all()
         else:
-            movies = MoviesModel.query.filter(MoviesModel.classification <= 13).all()
+            movies = MoviesModel.query.filter(MoviesModel.classification <= AGE_KIDS).all()
             
         if not movies:
             return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
@@ -88,7 +89,7 @@ def get_movie_by_id(id):
         if not valid_profile_kid(user):
             movie = MoviesModel.query.filter_by(id=id).first()
         else:
-            movie = MoviesModel.query.filter(and_(MoviesModel.classification <= 12, MoviesModel.id == id)).first()
+            movie = MoviesModel.query.filter(and_(MoviesModel.classification <= AGE_KIDS, MoviesModel.id == id)).first()
 
 
         if not movie:
@@ -114,7 +115,7 @@ def get_movies_by_name():
         if not valid_profile_kid(user):
             movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{movies_name}%")).all()
         else:
-            movies = MoviesModel.query.filter(and_(MoviesModel.classification <= 12, MoviesModel.name.ilike(f"%{movies_name}%"))).all()
+            movies = MoviesModel.query.filter(and_(MoviesModel.classification <= AGE_KIDS, MoviesModel.name.ilike(f"%{movies_name}%"))).all()
         
         if not movies:
             return {"message": "Movies not found"}, HTTPStatus.NOT_FOUND
@@ -140,7 +141,7 @@ def get_most_seen_movies():
         if not valid_profile_kid(user):
             movies = MoviesModel.query.order_by(MoviesModel.views.desc()).limit(5).all()
         else:
-            movies = MoviesModel.query.filter(MoviesModel.classification <= 12).order_by(MoviesModel.views.desc()).limit(5).all()
+            movies = MoviesModel.query.filter(MoviesModel.classification <= AGE_KIDS).order_by(MoviesModel.views.desc()).limit(5).all()
         
         
         return jsonify(serializer_movies(movies)), HTTPStatus.OK
@@ -159,7 +160,7 @@ def get_most_recent_movies():
         if not valid_profile_kid(user):
             movies = MoviesModel.query.order_by(MoviesModel.created_at.desc()).all()
         else:
-            movies = MoviesModel.query.filter(MoviesModel.classification <= 12).order_by(MoviesModel.created_at.desc()).all()
+            movies = MoviesModel.query.filter(MoviesModel.classification <= AGE_KIDS).order_by(MoviesModel.created_at.desc()).all()
         
         
         return jsonify(serializer_movies(movies)), HTTPStatus.OK
@@ -178,7 +179,7 @@ def get_appropriated_movie(profile_id: int):
         if not valid_profile_kid(user):
             movies = MoviesModel.query.all()
         else:
-            movies = MoviesModel.query.filter(MoviesModel.classification <= 12).all()
+            movies = MoviesModel.query.filter(MoviesModel.classification <= AGE_KIDS).all()
 
         if not movies: 
             raise EmptyListError(description="There is no movies to watch")
@@ -231,7 +232,7 @@ def post_favorite():
         if not valid_profile_kid(user):
             Movie = MoviesModel.query.filter_by(id=data["Movie_id"]).first_or_404("Movie not found")
         else:
-            Movie = MoviesModel.query.filter(and_(MoviesModel.id == data["Movie_id"], MoviesModel.classification <= 12)).first_or_404("Movie not found")
+            Movie = MoviesModel.query.filter(and_(MoviesModel.id == data["Movie_id"], MoviesModel.classification <= AGE_KIDS)).first_or_404("Movie not found")
         
         if Movie in profile.Movies:
             return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT
