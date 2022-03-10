@@ -348,16 +348,19 @@ def update_serie(id: int):
             raise PermissionError
         
         serie: SeriesModel = SeriesModel.query.filter_by(id=id)
+        serie.first_or_404("Serie not found")
         data = request.get_json()
 
         keys = [
+        "name",
         "image",
         "description", 
         "seasons", 
         "subtitle", 
         "dubbed", 
         "trailer", 
-        "classification"]
+        "classification",
+        "released_date"]
 
         analyze_keys(keys, data, 'update')
 
@@ -368,10 +371,13 @@ def update_serie(id: int):
         current_app.db.session.commit()
      
     except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
 
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
+
+    except NotFound as e:
+        return {"error": e.description}, HTTPStatus.NOT_FOUND
     
     return {}, HTTPStatus.NO_CONTENT
     
