@@ -317,11 +317,16 @@ def remove_from_genre():
 
 
 @jwt_required()
-def get_series_by_genre(genre_name: str):
+def get_series_by_genre():
+    try:
+        genre_name: str = request.args['genre']
 
-    series = find_by_genre(genre_name)
+        series = find_by_genre(genre_name)
 
-    return series
+        return series
+        
+    except BadRequestKeyError:
+        return {"error": "The query 'genre' is necessary to search by genre"}, HTTPStatus.BAD_REQUEST
 
 
 @jwt_required()
