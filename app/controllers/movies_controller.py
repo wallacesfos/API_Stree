@@ -309,14 +309,16 @@ def get_movies_by_genre():
 
 @jwt_required()
 def update_movie(id: int):
-    administer = get_jwt_identity()
-    if not administer["administer"]:
-        raise PermissionError
     try:
-        movie: MoviesModel = MoviesModel.query.filter_by(id=id)
-        data = request.get_json()
-
+        administer = get_jwt_identity()
+        if not administer["administer"]:
+            raise PermissionError
+        
+        movie: MoviesModel = MoviesModel.query.filter_by(id=id).first_or_404("Serie not found")
+        body = request.get_json()
+        
         keys = [
+        "name",
         "image",
         "description",
         "duration",
@@ -326,16 +328,19 @@ def update_movie(id: int):
         "dubbed",
         "classification"]
 
-        analyze_keys(keys, data, 'update')
+        analyze_keys(keys, body, 'update')
 
         if not movie:
             return {"error": "Movie not found."}, HTTPStatus.NOT_FOUND
         
-        movie.update(data, synchronize_session="fetch")
+        for key, value in body.items():
+            setattr(movie, key, value)
+            
+        current_app.db.session.add(movie)
         current_app.db.session.commit()
 
     except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
 
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
