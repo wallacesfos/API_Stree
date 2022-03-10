@@ -8,6 +8,8 @@ from app.models.series_model import SeriesModel
 from app.models.series_genders_model import series_genders
 from app.models.movies_model import MoviesModel
 from app.models.movies_genders_model import movies_genders
+from werkzeug.exceptions import NotFound
+from app.exc import InvalidProfileError
 
 
 recorver_email_list = []
@@ -33,6 +35,7 @@ def find_by_genre(name: str, video_type: str = "series"):
     try:
         user = get_jwt_identity()
         user_model = UserModel.query.filter(UserModel.email.ilike(user['email']) ).first()
+        genre = GendersModel.query.filter(GendersModel.gender.ilike(f"%{name}%")).first_or_404("Genre not found")
         
         if video_type == "movies":
             if not valid_profile_kid():
@@ -50,8 +53,11 @@ def find_by_genre(name: str, video_type: str = "series"):
                 series = db.session.query(SeriesModel).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(and_(GendersModel.gender.ilike(f"%{name}%"), SeriesModel.classification <= 12)).all()
                 return jsonify(series)
     
-    except AttributeError:
-        return {"Error": "Genre not found"}, HTTPStatus.NOT_FOUND
+    except NotFound as e:
+        return {"Error": e.description}, HTTPStatus.NOT_FOUND
+
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
 
 def serializer_movies(movies):
     return [{
