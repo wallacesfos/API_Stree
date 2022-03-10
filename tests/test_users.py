@@ -74,7 +74,7 @@ def test_update_users_success_status_code(client, app):
 
     newToken = token.json["access_token"]
 
-    request = client.put('/users', headers={
+    request = client.patch('/users', headers={
         "Authorization": f"Bearer {newToken}"
     }, json={
         "password": "ola_mundo"
@@ -87,10 +87,10 @@ def test_update_user_error_missing_authorization(client, app):
     app.config["SQLALCHEMY_DATABASE_URI"] = env()
     app.config["JWT_SECRET_KEY"] = env_secrets()
 
-    response = client.put('/users', json={
+    response = client.patch('/users', json={
         "password": "dajkda23232132s"
     })
-
+    
     assert response.json == {'msg': 'Missing Authorization Header'}
 
 
