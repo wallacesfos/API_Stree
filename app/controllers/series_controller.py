@@ -65,7 +65,7 @@ def get_series():
         if not series:
             return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
             
-        return jsonify(serializer(series)), HTTPStatus.OK
+        return jsonify(series), HTTPStatus.OK
     
 
     except NotFoundError:
@@ -174,6 +174,12 @@ def get_serie_by_name():
     except EmptyListError as e:
         return {"Message": e.description}, e.code
     
+    if not series:
+        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+
+
+    return jsonify(series),HTTPStatus.OK
+
 
 @jwt_required()
 def get_serie_most_seen():
@@ -193,6 +199,8 @@ def get_serie_most_seen():
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
     
+    return jsonify(series), HTTPStatus.OK
+
 
 @jwt_required()
 def series_recents():
@@ -212,6 +220,8 @@ def series_recents():
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
     
+    return jsonify(series), HTTPStatus.OK
+
 
 @jwt_required()
 def get_appropriated_series(profile_id: int):
