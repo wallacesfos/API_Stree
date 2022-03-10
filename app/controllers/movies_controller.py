@@ -2,7 +2,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
 from http import HTTPStatus
 
-from app.utils import find_by_genre, analyze_keys, valid_profile_kid, serializer_movie
+from app.utils import find_by_genre, analyze_keys, valid_profile_kid
 from werkzeug.exceptions import NotFound
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError

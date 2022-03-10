@@ -62,33 +62,7 @@ def serializer(series):
         ]
         } for serie in series]
     return serie_serializer
-        
 
-def serializer_movie(series):
-    serie_serializer = [{
-        "id": serie.id,
-        "name": serie.name,
-        "description": serie.description,
-        "image": serie.image,
-        "seasons": serie.seasons,
-        "trailer": serie.trailer,
-        "created_at": serie.created_at,
-        "views": serie.views,
-        "dubbed": serie.dubbed,
-        "subtitle": serie.subtitle,
-        "classification": serie.classification,
-        "released_date": serie.released_date,
-        "gender": serie.genders,
-        "episodes": [
-            {
-                "season": episode.season, 
-                "link": episode.link, 
-                "episode": episode.episode
-            }for episode in serie.episodes
-        ]
-        } for serie in series]
-    return serie_serializer
-        
 
 
 def check_values_from_profile(body):
