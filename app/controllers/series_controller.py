@@ -397,6 +397,7 @@ def remove_from_gender():
 
 @jwt_required()
 def get_series_by_genre(genre_name: str):
+#TODO não filtra kids
 
     series = find_by_genre(genre_name)
 
