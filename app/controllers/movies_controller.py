@@ -1,17 +1,13 @@
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
 from http import HTTPStatus
-
-from app.utils import find_by_genre, analyze_keys, valid_profile_kid
 from werkzeug.exceptions import NotFound
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
-
-
-from datetime import datetime as dt
 from app.exc import EmptyListError, NotFoundError, InvalidProfileError
 
+from app.utils import find_by_genre, analyze_keys, valid_profile_kid, serializer_movies, serializer_movie
 from app.models.gender_model import GendersModel
 from app.models.movies_model import MoviesModel
 from app.models.profile_model import ProfileModel
@@ -47,7 +43,7 @@ def create_movie():
         session.add(movie)
         session.commit()
 
-        return jsonify(movie), HTTPStatus.CREATED
+        return jsonify(serializer_movie(movie)), HTTPStatus.CREATED
 
     except PermissionError:
         return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
@@ -72,7 +68,7 @@ def get_movies():
         if not movies:
             return {"message": "Movie not found"}, HTTPStatus.NOT_FOUND
             
-        return jsonify(movies), HTTPStatus.OK
+        return jsonify(serializer_movies(movies)), HTTPStatus.OK
     
 
     except NotFoundError:
@@ -101,7 +97,7 @@ def get_movie_by_id(id):
         movie.views += 1
         current_app.db.session.commit()
 
-        return jsonify(movie), HTTPStatus.OK
+        return jsonify(serializer_movie(movie)), HTTPStatus.OK
 
     except NotFoundError:
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
@@ -124,7 +120,7 @@ def get_movies_by_name():
             return {"message": "Movies not found"}, HTTPStatus.NOT_FOUND
 
         
-        return jsonify(movies),HTTPStatus.OK
+        return jsonify(serializer_movies(movies)),HTTPStatus.OK
     
 
     except NotFoundError:
@@ -147,7 +143,7 @@ def get_most_seen_movies():
             movies = MoviesModel.query.filter(MoviesModel.classification <= 12).order_by(MoviesModel.views.desc()).limit(5).all()
         
         
-        return jsonify(movies), HTTPStatus.OK
+        return jsonify(serializer_movies(movies)), HTTPStatus.OK
     
     except NotFoundError:
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
@@ -166,7 +162,7 @@ def get_most_recent_movies():
             movies = MoviesModel.query.filter(MoviesModel.classification <= 12).order_by(MoviesModel.created_at.desc()).all()
         
         
-        return jsonify(movies), HTTPStatus.OK
+        return jsonify(serializer_movies(movies)), HTTPStatus.OK
     
     except NotFoundError:
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
@@ -187,7 +183,7 @@ def get_appropriated_movie(profile_id: int):
         if not movies: 
             raise EmptyListError(description="There is no movies to watch")
 
-        return jsonify(movies), HTTPStatus.OK
+        return jsonify(serializer_movies(movies)), HTTPStatus.OK
     
     except NotFoundError:
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
@@ -226,12 +222,10 @@ def post_favorite():
         data = request.get_json()
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
 
-#TODO precisa levar esse código para valid_profile_kid, daqui:
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
             return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
-#TODO até aqui
 
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
@@ -320,7 +314,6 @@ def add_to_gender():
 
 @jwt_required()
 def get_movies_by_genre(genre_name: str):
-#TODO não filtra kids
 
     movies = find_by_genre(genre_name, video_type="movies")
 
