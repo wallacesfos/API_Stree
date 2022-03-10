@@ -106,7 +106,7 @@ def get_movie_by_id(id):
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
 
       
 @jwt_required()
@@ -118,9 +118,6 @@ def get_movies_by_name():
             movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{movies_name}%")).all()
         else:
             movies = MoviesModel.query.filter(and_(MoviesModel.classification <= AGE_KIDS, MoviesModel.name.ilike(f"%{movies_name}%"))).all()
-        
-        if not movies:
-            return {"message": "Movies not found"}, HTTPStatus.NOT_FOUND
 
         
         return jsonify(serializer_movies(movies)),HTTPStatus.OK
@@ -130,7 +127,7 @@ def get_movies_by_name():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
     
     except BadRequestKeyError:
         return {"error": "The query 'name' is necessary to search by name"}, HTTPStatus.BAD_REQUEST
@@ -153,7 +150,7 @@ def get_most_seen_movies():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
 
 
 @jwt_required()
@@ -172,7 +169,7 @@ def get_most_recent_movies():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
 
 
     
@@ -206,40 +203,41 @@ def post_favorite():
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
-            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+            raise InvalidProfileError
 
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
-            Movie = MoviesModel.query.filter_by(id=data["Movie_id"]).first_or_404("Movie not found")
+            movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
         else:
-            Movie = MoviesModel.query.filter(and_(MoviesModel.id == data["Movie_id"], MoviesModel.classification <= AGE_KIDS)).first_or_404("Movie not found")
+            movie = MoviesModel.query.filter(and_(MoviesModel.id == data["movie_id"], MoviesModel.classification <= AGE_KIDS)).first_or_404("Movie not found")
         
-        if Movie in profile.Movies:
+        if movie in profile.movies:
             return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT
         
-        profile.Movies.append(Movie)
+        profile.movies.append(movie)
         current_app.db.session.add(profile)
         current_app.db.session.commit()
+
+        return jsonify({}), HTTPStatus.NO_CONTENT
 
     except NotFoundError:
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
     
-    except Exception as e:
+    except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
     
-    return jsonify({}), HTTPStatus.NO_CONTENT
 
 
 @jwt_required()
 def remove_from_genre():
     administer = get_jwt_identity()
-    if not administer["administer"]:
-        raise PermissionError
     
     try:
+        if not administer["administer"]:
+            raise PermissionError
         data = request.get_json()
         analyze_keys(["genre_id", "movie_id"], data)
         
@@ -251,16 +249,17 @@ def remove_from_genre():
         current_app.db.session.commit()
     
     except ValueError:
-        return {"error": "This movie does not belong to the genre"}, HTTPStatus.BAD_REQUEST
+        return {"error": "This movie does not belong to the genre"}, HTTPStatus.NOT_FOUND
 
     except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
 
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
+    
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
         
-    except Exception:
-        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
     return {}, HTTPStatus.OK
 
@@ -268,12 +267,13 @@ def remove_from_genre():
 @jwt_required()
 def add_to_genre():
     administer = get_jwt_identity()
-    if not administer["administer"]:
-        raise PermissionError
 
     try:
+        if not administer["administer"]:
+            raise PermissionError
+
         data = request.get_json()
-        analyze_keys(["genrer_id", "movie_id"], data)
+        analyze_keys(["genre_id", "movie_id"], data)
 
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
         gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Genre not found")
@@ -281,16 +281,17 @@ def add_to_genre():
         current_app.db.session.add(gender)
         current_app.db.session.commit()
 
+        return {}, HTTPStatus.NO_CONTENT
+
     except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
 
     except KeyError as e:
         return {"error": e.args[0]}, 400
-        
-    except Exception:
-        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
     
-    return {}, HTTPStatus.NO_CONTENT
+    except PermissionError:
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
+    
 
 
 @jwt_required()
@@ -300,7 +301,7 @@ def get_movies_by_genre():
 
         movies = find_by_genre(genre_name, video_type="movies")
 
-        return movies
+        return jsonify(movies)
 
     except BadRequestKeyError:
         return {"error": "The query 'genre' is necessary to search by genre"}, HTTPStatus.BAD_REQUEST
@@ -350,21 +351,29 @@ def remove_favorite():
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
-            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.UNAUTHORIZED
         
-        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("movie not found")
+        movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
         
         if not movie in profile.movies:
-            return jsonify({"error": "Movie not found in profile"}), HTTPStatus.NOT_FOUND
+            return jsonify({"error": "Movie not found in favorite's profile"}), HTTPStatus.NOT_FOUND
         
         remove = profile.movies.index(movie)
         profile.movies.pop(remove)
         current_app.db.session.add(profile)
         current_app.db.session.commit()
+
+        return jsonify({}), HTTPStatus.NO_CONTENT
+
     
-    except Exception as e:
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
+    
+    except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
     
-    return jsonify({}), HTTPStatus.NO_CONTENT
+    
+
+    
 
 

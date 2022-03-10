@@ -10,7 +10,8 @@ from app.models.movies_model import MoviesModel
 from app.models.movies_genders_model import movies_genders
 from werkzeug.exceptions import NotFound
 from app.exc import InvalidProfileError
-
+from sqlalchemy import and_
+from app.configs.var_age import AGE_KIDS
 
 recorver_email_list = []
 
@@ -38,20 +39,20 @@ def find_by_genre(name: str, video_type: str = "series"):
         genre = GendersModel.query.filter(GendersModel.gender.ilike(f"%{name}%")).first_or_404("Genre not found")
         
         if video_type == "movies":
-            if not valid_profile_kid():
+            if not valid_profile_kid(user_model):
                 movies = db.session.query(MoviesModel).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(GendersModel.gender.ilike(f"%{name}%")).all()
-                return jsonify(movies)
+                return serializer_movies(movies)
             else:
-                movies = db.session.query(MoviesModel).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(and_(GendersModel.gender.ilike(f"%{name}%"), MoviesModel.classification <= 12)).all()
-                return jsonify(movies)
+                movies = db.session.query(MoviesModel).select_from(MoviesModel).join(movies_genders).join(GendersModel).filter(and_(GendersModel.gender.ilike(f"%{name}%"), MoviesModel.classification <= AGE_KIDS)).all()
+                return serializer_movies(movies)
 
         else:
             if not valid_profile_kid(user_model):
                 series = db.session.query(SeriesModel).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(GendersModel.gender.ilike(f"%{name}%")).all()
-                return jsonify(series)
+                return serializer_movies(series)
             else:
-                series = db.session.query(SeriesModel).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(and_(GendersModel.gender.ilike(f"%{name}%"), SeriesModel.classification <= 12)).all()
-                return jsonify(series)
+                series = db.session.query(SeriesModel).select_from(SeriesModel).join(series_genders).join(GendersModel).filter(and_(GendersModel.gender.ilike(f"%{name}%"), SeriesModel.classification <= AGE_KIDS)).all()
+                return serializer_movies(series)
     
     except NotFound as e:
         return {"Error": e.description}, HTTPStatus.NOT_FOUND
