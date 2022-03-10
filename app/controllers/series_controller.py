@@ -142,7 +142,7 @@ def get_serie_most_seen():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
 
 
 @jwt_required()
@@ -161,7 +161,7 @@ def series_recents():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
 
 
 
@@ -207,7 +207,7 @@ def post_favorite():
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
-            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.UNAUTHORIZED
 #TODO até aqui
 
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
@@ -227,7 +227,7 @@ def post_favorite():
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+        return {"error": "Invalid profile for user"}, HTTPStatus.UNAUTHORIZED
     
     except Exception as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
@@ -243,7 +243,7 @@ def remove_favorite():
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
-            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.CONFLICT
+            return jsonify({"error": "Invalid profile for user"}), HTTPStatus.UNAUTHORIZED
         
         serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
         
