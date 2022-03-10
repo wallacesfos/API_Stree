@@ -61,7 +61,27 @@ GET - /movies/<int:id>                              Um filme referente ao id des
 PATCH - /movies/<int:id>                            Atualiza informações do filme de id indicado
 
 DELETE - /movies/<int:id>                           Deleta o filme de id indicado
-DELETE - /movies/gender                             Remove um filme de um gênero
+DELETE - /movies/genrer                             Remove um filme de um gênero
 DELETE - /movies/favorite                           Remove um filme dos favoritos de um perfil
 
+
+
+SERIES ROUTES
+
+POST - /series                                      Inclui uma série
+POST - /series/genre                                Adiciona uma série à um gênero
+POST - /series/favorite                             Adiciona uma série aos favoritos de um perfil
+
+GET - /series                                       Todos as séries
+GET - /series/name/<name_to_search>                 Todos as séries que tenham determinada palvra
+GET - /series/genre/<genre_name>                    Todos as séries de um determinado gênero
+GET - /series/most_seen                             As 5 primeiras séries mais assistidos
+GET - /series/most_recent                           Em até 5 séries em ordem descrescente de lançamento
+GET - /series/<int:id>                              Um série referente ao id descrito
+
+PATCH - /series/<int:id>                            Atualiza informações da série de id indicado
+
+DELETE - /series/<int:id>                           Deleta a série do id indicado
+DELETE - /series/gender                             Remove uma série de um gênero
+DELETE - /series/favorite                           Remove uma série dos favoritos de um perfil
 

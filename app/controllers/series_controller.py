@@ -87,7 +87,7 @@ def get_serie_by_id(id):
 
 
     if not serie:
-        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+        return {"message": "Serie not found or inappropriate"}, HTTPStatus.NOT_FOUND
 
     serie_serializer = {
         "id": serie.id,
@@ -119,8 +119,7 @@ def get_serie_by_id(id):
 
 
 @jwt_required()
-def get_serie_by_name():
-    series_name = request.args.get("name")
+def get_serie_by_name(series_name: str):
     user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
     if not valid_profile_kid(user):
         series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
@@ -128,7 +127,7 @@ def get_serie_by_name():
         series = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.name.ilike(f"%{series_name}%"))).all()
     
     if not series:
-        return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
+        return {"message": "Serie not found or inappropriate."}, HTTPStatus.NOT_FOUND
 
     serie_serializer = [{
         "id": serie.id,
@@ -155,6 +154,7 @@ def get_serie_by_name():
 
     return jsonify(serie_serializer),HTTPStatus.OK
 
+
 @jwt_required()
 def get_serie_most_seen():
     user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
@@ -177,22 +177,6 @@ def series_recents():
     
     return jsonify(serializer(series)), HTTPStatus.OK
 
-@jwt_required()
-def get_appropriated_series(profile_id: int):
-    try:
-        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-        if not valid_profile_kid(user):
-            series = SeriesModel.query.all()
-        else:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 12).all()
-
-        if not series: 
-            raise EmptyListError(description="There is no series to watch")
-
-        return jsonify(series), HTTPStatus.OK
-    
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
 
 @jwt_required()
 def delete_serie(id):
@@ -244,7 +228,7 @@ def post_favorite():
         if not valid_profile_kid(user):
             serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("Serie not found")
         else:
-            serie = SeriesModel.query.filter(and_(SeriesModel.id == data["serie_id"], SeriesModel.classification <= 12)).first_or_404("Serie not found")
+            serie = SeriesModel.query.filter(and_(SeriesModel.id == data["serie_id"], SeriesModel.classification <= 12)).first_or_404("Serie not found or inappropriated")
         
         if serie in profile.series:
             return jsonify({"error": "Is already favorite"}), HTTPStatus.CONFLICT
@@ -286,11 +270,11 @@ def remove_favorite():
     return jsonify({}), HTTPStatus.NO_CONTENT
 
 @jwt_required()
-def add_to_gender():
+def add_to_genre():
     body = request.get_json()
 
     try:
-        analyze_keys(["gender_id", "serie_id"], body)
+        analyze_keys(["genre_id", "serie_id"], body)
 
         administer = get_jwt_identity()
 
@@ -299,7 +283,7 @@ def add_to_gender():
             
 
         serie = SeriesModel.query.filter_by(id=body["serie_id"]).first_or_404("Serie not found")
-        gender = GendersModel.query.filter_by(id=body["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=body["genre_id"]).first_or_404("Gender not found")
         serie.genders.append(gender)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
@@ -316,10 +300,10 @@ def add_to_gender():
     return {}, HTTPStatus.NO_CONTENT
 
 @jwt_required()
-def remove_from_gender():
+def remove_from_genre():
     data = request.get_json()
     try:
-        analyze_keys(["gender_id", "serie_id"], data)
+        analyze_keys(["genre_id", "serie_id"], data)
         
         administer = get_jwt_identity()
 
@@ -327,7 +311,7 @@ def remove_from_gender():
             raise PermissionError
             
         serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("serie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Gender not found")
         remove = serie.genders.index(gender)
         serie.genders.pop(remove)
         current_app.db.session.add(serie)

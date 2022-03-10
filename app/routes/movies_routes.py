@@ -11,7 +11,7 @@ from app.controllers.movies_controller import (
     get_movies_by_genre,
     get_movies_by_name,
     post_favorite,
-    remove_from_gender,
+    remove_from_genre,
     update_movie,
 )
 
@@ -31,4 +31,4 @@ bp_movies.get("/most_recent")(get_most_recent_movies)
 bp_movies.patch("/<int:id>")(update_movie)
 
 bp_movies.delete("/<int:id>")(delete_movie)
-bp_movies.delete('/gender')(remove_from_gender)
+bp_movies.delete('/genre')(remove_from_genre)

@@ -218,10 +218,10 @@ def add_to_genre():
 
 
 @jwt_required()
-def remove_from_gender():
+def remove_from_genre():
     data = request.get_json()
     try:
-        analyze_keys(["gender_id", "movie_id"], data)
+        analyze_keys(["genre_id", "movie_id"], data)
         
         administer = get_jwt_identity()
 
@@ -229,7 +229,7 @@ def remove_from_gender():
             raise PermissionError
             
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Gender not found")
         remove = movie.genders.index(gender)
         movie.genders.pop(remove)
         current_app.db.session.add(movie)
