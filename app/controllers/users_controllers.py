@@ -62,8 +62,8 @@ def login_user():
         return {"access_token": access_token}, HTTPStatus.OK
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
-    except Exception:
-        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST        
+    except AttributeError:
+        return {"error": "The password must be a string"}, HTTPStatus.BAD_REQUEST
 
 
 
