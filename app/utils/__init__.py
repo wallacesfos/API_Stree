@@ -36,9 +36,43 @@ def find_by_genre(name: str, video_type: str = "series"):
     except AttributeError:
         return {"Error": "Genre not found"}, HTTPStatus.NOT_FOUND
 
+def serializer_movies(movies):
+    return [{
+        "id": movie.id,
+        "name": movie.name,
+        "image": movie.image,
+        "description": movie.description,
+        "duration": movie.duration,
+        "link": movie.link,
+        "trailers": movie.trailers,
+        "created_at": movie.created_at,
+        "views": movie.views,
+        "dubbed": movie.dubbed,
+        "subtitle": movie.subtitle,
+        "classification": movie.classification,
+        "released_date": movie.released_date,
+        "gender": movie.genders,
+    } for movie in movies]
+    
+def serializer_movie(movie):
+    return {
+        "id": movie.id,
+        "name": movie.name,
+        "image": movie.image,
+        "description": movie.description,
+        "duration": movie.duration,
+        "link": movie.link,
+        "trailers": movie.trailers,
+        "created_at": movie.created_at,
+        "views": movie.views,
+        "dubbed": movie.dubbed,
+        "subtitle": movie.subtitle,
+        "classification": movie.classification,
+        "released_date": movie.released_date,
+        "gender": movie.genders,
+    }
 
-
-def serializer(series):
+def serializer_series(series):
     serie_serializer = [{
         "id": serie.id,
         "name": serie.name,
@@ -63,11 +97,31 @@ def serializer(series):
         } for serie in series]
     return serie_serializer
 
+def serializer_serie(serie):
+    return {
+        "id": serie.id,
+        "name": serie.name,
+        "description": serie.description,
+        "image": serie.image,
+        "seasons": serie.seasons,
+        "trailer": serie.trailer,
+        "created_at": serie.created_at,
+        "views": serie.views,
+        "dubbed": serie.dubbed,
+        "subtitle": serie.subtitle,
+        "classification": serie.classification,
+        "released_date": serie.released_date,
+        "gender": serie.genders,
+        "episodes": [
+            {
+                "season": episode.season, 
+                "link": episode.link, 
+                "episode": episode.episode
+            }for episode in serie.episodes
+        ]
+        }
 
 
-def check_values_from_profile(body):
-    
-    ...
     
 def valid_profile_kid(user):
     from app.models.profile_model import ProfileModel
