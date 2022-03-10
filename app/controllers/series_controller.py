@@ -208,12 +208,10 @@ def post_favorite():
         data = request.get_json()
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
 
-#TODO precisa levar esse código para valid_profile_kid, daqui:
         profile = ProfileModel.query.filter_by(id=data["profile_id"]).first_or_404("Profile not found")
         
         if not profile in user.profiles:
             return jsonify({"error": "Invalid profile for user"}), HTTPStatus.UNAUTHORIZED
-#TODO até aqui
 
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
