@@ -6,7 +6,7 @@ from app import exc
 from app.utils import analyze_keys, find_by_genre, valid_profile_kid, serializer
 from app.exc import PermissionError, EmptyListError, InvalidProfileError, NotFoundError
 from sqlalchemy import and_
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, BadRequestKeyError
 
 from app.models.series_model import SeriesModel
 from app.models.user_model import UserModel
@@ -119,41 +119,24 @@ def get_serie_by_id(id):
 
 
 @jwt_required()
-def get_serie_by_name(series_name: str):
-    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-    if not valid_profile_kid(user):
-        series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
-    else:
-        series = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.name.ilike(f"%{series_name}%"))).all()
-    
-    if not series:
-        return {"message": "Serie not found or inappropriate."}, HTTPStatus.NOT_FOUND
+def get_serie_by_name():
+    try:
+        series_name: str = request.args['name']
+        
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
+            series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
+        else:
+            series = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.name.ilike(f"%{series_name}%"))).all()
+        
+        if not series:
+            return {"message": "Serie not found or inappropriate."}, HTTPStatus.NOT_FOUND
 
-    serie_serializer = [{
-        "id": serie.id,
-        "name": serie.name,
-        "description": serie.description,
-        "image": serie.image,
-        "seasons": serie.seasons,
-        "trailer": serie.trailer,
-        "created_at": serie.created_at,
-        "views": serie.views,
-        "dubbed": serie.dubbed,
-        "subtitle": serie.subtitle,
-        "classification": serie.classification,
-        "released_date": serie.released_date,
-        "gender": serie.genders,
-        "episodes": [
-            {
-                "season": episode.season, 
-                "link": episode.link, 
-                "episode": episode.episode
-            }for episode in serie.episodes
-        ]
-    }for serie in series]
 
-    return jsonify(serie_serializer),HTTPStatus.OK
+        return jsonify(series),HTTPStatus.OK
 
+    except BadRequestKeyError:
+        return {"error": "The query 'name' is necessary to search by name"}, HTTPStatus.BAD_REQUEST
 
 @jwt_required()
 def get_serie_most_seen():
