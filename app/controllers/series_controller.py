@@ -7,6 +7,8 @@ from app.utils import analyze_keys, find_by_genre, valid_profile_kid, serializer
 from app.exc import PermissionError, EmptyListError, InvalidProfileError, NotFoundError
 from sqlalchemy import and_
 from werkzeug.exceptions import NotFound, BadRequestKeyError
+from sqlalchemy.exc import IntegrityError
+from psycopg2.errors import UniqueViolation
 
 from app.configs.var_age import AGE_KIDS
 from app.models.series_model import SeriesModel
@@ -51,9 +53,12 @@ def create_serie():
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
 
-    except Exception:
-        return {"error": "An unexpected error occurred"}, HTTPStatus.BAD_REQUEST
-
+    
+    except IntegrityError as e:
+        if isinstance(e.orig, UniqueViolation):
+            return {"error": "This serie is already exists"}, HTTPStatus.CONFLICT
+    
+    
 @jwt_required()
 def get_series():
     try:
