@@ -3,7 +3,7 @@ from flask import request, current_app, jsonify
 from http import HTTPStatus
 
 from app.utils import find_by_genre, analyze_keys, valid_profile_kid
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, BadRequestKeyError
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation
@@ -114,7 +114,7 @@ def get_movie_by_id(id):
 @jwt_required()
 def get_movies_by_name():
     try:
-        movies_name = request.args.get("name")
+        movies_name = request.args["name"]
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
             movies = MoviesModel.query.filter(MoviesModel.name.ilike(f"%{movies_name}%")).all()
@@ -134,8 +134,9 @@ def get_movies_by_name():
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
     
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
+    except BadRequestKeyError:
+        return {"error": "The query 'name' is necessary to search by name"}, HTTPStatus.BAD_REQUEST
+
 
 
 @jwt_required()
@@ -176,29 +177,6 @@ def get_most_recent_movies():
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
 
 
-@jwt_required()
-def get_appropriated_movie(profile_id: int):
-    try:
-        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-        if not valid_profile_kid(user):
-            movies = MoviesModel.query.all()
-        else:
-            movies = MoviesModel.query.filter(MoviesModel.classification <= AGE_KIDS).all()
-
-        if not movies: 
-            raise EmptyListError(description="There is no movies to watch")
-
-        return jsonify(movies), HTTPStatus.OK
-    
-    except NotFoundError:
-        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
-    
-    except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
-    
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
-    
     
 @jwt_required()
 def delete_movie(id: int):
@@ -260,24 +238,24 @@ def post_favorite():
 
 
 @jwt_required()
-def remove_from_gender():
+def remove_from_genre():
     administer = get_jwt_identity()
     if not administer["administer"]:
         raise PermissionError
     
     try:
         data = request.get_json()
-        analyze_keys(["gender_id", "movie_id"], data)
+        analyze_keys(["genre_id", "movie_id"], data)
         
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Genre not found")
         remove = movie.genders.index(gender)
         movie.genders.pop(remove)
         current_app.db.session.add(movie)
         current_app.db.session.commit()
     
     except ValueError:
-        return {"error": "film does not belong to the genre"}, HTTPStatus.BAD_REQUEST
+        return {"error": "This movie does not belong to the genre"}, HTTPStatus.BAD_REQUEST
 
     except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
@@ -292,17 +270,17 @@ def remove_from_gender():
 
  
 @jwt_required()
-def add_to_gender():
+def add_to_genre():
     administer = get_jwt_identity()
     if not administer["administer"]:
         raise PermissionError
 
     try:
         data = request.get_json()
-        analyze_keys(["gender_id", "movie_id"], data)
+        analyze_keys(["genrer_id", "movie_id"], data)
 
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("Movie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Genre not found")
         movie.genders.append(gender)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
@@ -320,12 +298,16 @@ def add_to_gender():
 
 
 @jwt_required()
-def get_movies_by_genre(genre_name: str):
-#TODO não filtra kids
+def get_movies_by_genre():
+    try:
+        genre_name: str = request.args['genre']
 
-    movies = find_by_genre(genre_name, video_type="movies")
+        movies = find_by_genre(genre_name, video_type="movies")
 
-    return movies
+        return movies
+
+    except BadRequestKeyError:
+        return {"error": "The query 'genre' is necessary to search by genre"}, HTTPStatus.BAD_REQUEST
 
 
 @jwt_required()
@@ -377,7 +359,7 @@ def remove_favorite():
         movie = MoviesModel.query.filter_by(id=data["movie_id"]).first_or_404("movie not found")
         
         if not movie in profile.movies:
-            return jsonify({"error": "movie not found in profile"}), HTTPStatus.NOT_FOUND
+            return jsonify({"error": "Movie not found in profile"}), HTTPStatus.NOT_FOUND
         
         remove = profile.movies.index(movie)
         profile.movies.pop(remove)
