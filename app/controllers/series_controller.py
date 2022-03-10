@@ -67,55 +67,64 @@ def get_series():
             
         return jsonify(serializer(series)), HTTPStatus.OK
     
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
 
     except NotFoundError:
         return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
-        
+    
+    except EmptyListError as e:
+        return {"Message": e.description}, e.code
+
 
 @jwt_required()
 def get_serie_by_id(id):
-    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-    if not valid_profile_kid(user):
-        serie = SeriesModel.query.filter_by(id=id).first()
-    else:
-        serie = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.id == id)).first()
+    try:
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
+            serie = SeriesModel.query.filter_by(id=id).first()
+        else:
+            serie = SeriesModel.query.filter(and_(SeriesModel.classification <= 12, SeriesModel.id == id)).first()
 
 
-    if not serie:
-        return {"message": "Serie not found or inappropriate"}, HTTPStatus.NOT_FOUND
+        if not serie:
+            return {"message": "Serie not found or inappropriate"}, HTTPStatus.NOT_FOUND
 
-    serie_serializer = {
-        "id": serie.id,
-        "name": serie.name,
-        "description": serie.description,
-        "image": serie.image,
-        "seasons": serie.seasons,
-        "trailer": serie.trailer,
-        "created_at": serie.created_at,
-        "views": serie.views,
-        "dubbed": serie.dubbed,
-        "subtitle": serie.subtitle,
-        "classification": serie.classification,
-        "released_date": serie.released_date,
-        "gender": serie.genders,
-        "episodes": [
-            {
-                "season": episode.season, 
-                "link": episode.link, 
-                "episode": episode.episode
-            }for episode in serie.episodes
-        ]
-    }
 
-    serie.views += 1
-    current_app.db.session.commit()
+        serie_serializer = {
+            "id": serie.id,
+            "name": serie.name,
+            "description": serie.description,
+            "image": serie.image,
+            "seasons": serie.seasons,
+            "trailer": serie.trailer,
+            "created_at": serie.created_at,
+            "views": serie.views,
+            "dubbed": serie.dubbed,
+            "subtitle": serie.subtitle,
+            "classification": serie.classification,
+            "released_date": serie.released_date,
+            "gender": serie.genders,
+            "episodes": [
+                {
+                    "season": episode.season, 
+                    "link": episode.link, 
+                    "episode": episode.episode
+                }for episode in serie.episodes
+            ]
+        }
 
-    return jsonify(serie_serializer), HTTPStatus.OK
+        serie.views += 1
+        current_app.db.session.commit()
+
+        return jsonify(serie_serializer), HTTPStatus.OK
+
+    except NotFoundError:
+        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
+    
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
 
 
 @jwt_required()
@@ -137,28 +146,50 @@ def get_serie_by_name():
 
     except BadRequestKeyError:
         return {"error": "The query 'name' is necessary to search by name"}, HTTPStatus.BAD_REQUEST
+    
+    except NotFoundError:
+        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
+    
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
 
 @jwt_required()
 def get_serie_most_seen():
-    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-    if not valid_profile_kid(user):
-        series = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
-    else:
-        series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.views.desc()).limit(5).all()
+    try:
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
+            series = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
+        else:
+            series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.views.desc()).limit(5).all()
+        
+        
+        return jsonify(serializer(series)), HTTPStatus.OK
     
+    except NotFoundError:
+        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
-    return jsonify(serializer(series)), HTTPStatus.OK
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+    
 
 @jwt_required()
 def series_recents():
-    user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-    if not valid_profile_kid(user):
-        series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
-    else:
-        series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.created_at.desc()).all()
+    try:
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
+            series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
+        else:
+            series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.created_at.desc()).all()
+        
+        
+        return jsonify(serializer(series)), HTTPStatus.OK
     
+    except NotFoundError:
+        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
     
-    return jsonify(serializer(series)), HTTPStatus.OK
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+    
 
 
 @jwt_required()
@@ -220,11 +251,16 @@ def post_favorite():
         current_app.db.session.add(profile)
         current_app.db.session.commit()
 
+    except NotFoundError:
+        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
+    
+    except InvalidProfileError:
+        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
+    
     except Exception as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
     
     return jsonify({}), HTTPStatus.NO_CONTENT
-
 
 
 @jwt_required()
@@ -315,7 +351,6 @@ def remove_from_genre():
     return {}, HTTPStatus.OK
 
 
-
 @jwt_required()
 def get_series_by_genre():
     try:
@@ -332,6 +367,10 @@ def get_series_by_genre():
 @jwt_required()
 def update_serie(id: int):
     try:
+        administer = get_jwt_identity()
+        if not administer["administer"]:
+            raise PermissionError
+        
         serie: SeriesModel = SeriesModel.query.filter_by(id=id)
         data = request.get_json()
 

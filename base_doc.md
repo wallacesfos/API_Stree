@@ -8,6 +8,7 @@ user -> body
 -Todas as requisições get estarão submetidas à um perfil associado à um usuário.
 -As requisições do perfil entregam conteúdos de acordo com a sua classificação kids.
 -Todas as requisições de obras deverão ser autenticadas.
+-Caso não tenha nenhum conteúdo na rota de requisição genérica não será estourado um erro, será retornada uma lista vazia.
 
 -A rota de criar usuário é pública. Qualquer um pode criar um usuário.
 -A rota de criar perfil é privada. Um único usuário pode criar até 4 perfis.
