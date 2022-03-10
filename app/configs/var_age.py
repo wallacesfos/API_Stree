@@ -1,3 +1,6 @@
-from os import environ
+import os
+from dotenv import load_dotenv
 
-AGE_KIDS = int(environ.get("AGE_KIDS"))
+load_dotenv()
+
+AGE_KIDS = int(os.getenv("AGE_KIDS"))
