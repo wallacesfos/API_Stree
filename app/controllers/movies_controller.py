@@ -1,13 +1,9 @@
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from flask import request, current_app, jsonify
 from http import HTTPStatus
-<<<<<<< HEAD
 
 from app.utils import find_by_genre, analyze_keys, valid_profile_kid
 from werkzeug.exceptions import NotFound, BadRequestKeyError
-=======
-from werkzeug.exceptions import NotFound
->>>>>>> 28a3d7752f0a7c50b45e2d2c16f9200ac9cd2923
 from sqlalchemy import and_
 from sqlalchemy.exc import IntegrityError
 from psycopg2.errors import UniqueViolation

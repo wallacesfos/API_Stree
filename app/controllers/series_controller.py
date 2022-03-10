@@ -6,7 +6,7 @@ from app import exc
 from app.utils import analyze_keys, find_by_genre, valid_profile_kid, serializer_series, serializer_serie
 from app.exc import PermissionError, EmptyListError, InvalidProfileError, NotFoundError
 from sqlalchemy import and_
-from werkzeug.exceptions import NotFound
+from werkzeug.exceptions import NotFound, BadRequestKeyError
 
 from app.configs.var_age import AGE_KIDS
 from app.models.series_model import SeriesModel
@@ -106,7 +106,7 @@ def get_serie_by_id(id):
 @jwt_required()
 def get_serie_by_name():
     try:
-        series_name = request.args.get("name")
+        series_name = request.args["name"]
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
             series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
@@ -125,8 +125,8 @@ def get_serie_by_name():
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
     
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
+    except BadRequestKeyError:
+        return {"error": "The query 'name' is necessary to search by name"}, HTTPStatus.BAD_REQUEST
 
 
 @jwt_required()
@@ -167,34 +167,11 @@ def series_recents():
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
 
 
-@jwt_required()
-def get_appropriated_series(profile_id: int):
-    try:
-        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-        if not valid_profile_kid(user):
-            series = SeriesModel.query.all()
-        else:
-            series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).all()
-
-        if not series: 
-            raise EmptyListError(description="There is no series to watch")
-
-        return jsonify(serializer_series(series)), HTTPStatus.OK
-    
-    except NotFoundError:
-        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
-    
-    except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
-    
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
 
 @jwt_required()
 def delete_serie(id):
 
     try:
-
         session = current_app.db.session
 
         administer = get_jwt_identity()
@@ -287,11 +264,11 @@ def remove_favorite():
     return jsonify({}), HTTPStatus.NO_CONTENT
 
 @jwt_required()
-def add_to_gender():
+def add_to_genre():
     body = request.get_json()
 
     try:
-        analyze_keys(["gender_id", "serie_id"], body)
+        analyze_keys(["genre_id", "serie_id"], body)
 
         administer = get_jwt_identity()
 
@@ -300,7 +277,7 @@ def add_to_gender():
             
 
         serie = SeriesModel.query.filter_by(id=body["serie_id"]).first_or_404("Serie not found")
-        gender = GendersModel.query.filter_by(id=body["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=body["genre_id"]).first_or_404("Genre not found")
         serie.genders.append(gender)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
@@ -317,10 +294,10 @@ def add_to_gender():
     return {}, HTTPStatus.NO_CONTENT
 
 @jwt_required()
-def remove_from_gender():
+def remove_from_genre():
     data = request.get_json()
     try:
-        analyze_keys(["gender_id", "serie_id"], data)
+        analyze_keys(["genre_id", "serie_id"], data)
         
         administer = get_jwt_identity()
 
@@ -328,14 +305,14 @@ def remove_from_gender():
             raise PermissionError
             
         serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("serie not found")
-        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Genre not found")
         remove = serie.genders.index(gender)
         serie.genders.pop(remove)
         current_app.db.session.add(serie)
         current_app.db.session.commit()
     
     except ValueError:
-        return {"error": "film does not belong to the genre"}, HTTPStatus.BAD_REQUEST
+        return {"error": "This serie does not belong to the genre"}, HTTPStatus.BAD_REQUEST
 
     except NotFound as e:
         return {"error": e.description}, HTTPStatus.NOT_FOUND
@@ -350,11 +327,15 @@ def remove_from_gender():
 
 
 @jwt_required()
-def get_series_by_genre(genre_name: str):
+def get_series_by_genre():
+    try:
+        genre_name = request.args['genre']
+        series = find_by_genre(genre_name)
+    
+        return series
+    except BadRequestKeyError:
+        return {"error": "The query 'genre' is necessary to search by genre"}, HTTPStatus.BAD_REQUEST
 
-    series = find_by_genre(genre_name)
-
-    return series
 
 
 @jwt_required()
