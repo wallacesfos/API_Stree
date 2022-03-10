@@ -112,9 +112,6 @@ def get_serie_by_name():
             series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
         else:
             series = SeriesModel.query.filter(and_(SeriesModel.classification <= AGE_KIDS, SeriesModel.name.ilike(f"%{series_name}%"))).all()
-        
-        if not series:
-            return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
 
         return jsonify(serializer_series(series)),HTTPStatus.OK
     
