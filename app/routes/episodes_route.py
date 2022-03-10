@@ -6,7 +6,7 @@ bp_episodes = Blueprint("episodes", __name__, url_prefix="/episodes")
 
 bp_episodes.post("")(create_episode)
 bp_episodes.get("")(get_episodes)
+bp_episodes.get("/<int:id>")(get_episode_by_id)
 bp_episodes.delete("/<int:id>")(delete_episode)
 
-bp_episodes.get("/<int:id>")(get_episode_by_id)
 
