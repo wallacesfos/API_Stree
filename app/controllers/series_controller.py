@@ -48,7 +48,7 @@ def create_serie():
         return jsonify(serializer_serie(serie)), HTTPStatus.CREATED
 
     except PermissionError:
-        return {"error": "Admins only"}, HTTPStatus.BAD_REQUEST
+        return {"error": "Admins only"}, HTTPStatus.UNAUTHORIZED
 
     except KeyError as e:
         return {"error": e.args[0]}, HTTPStatus.BAD_REQUEST
