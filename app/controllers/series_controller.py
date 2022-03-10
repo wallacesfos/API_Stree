@@ -6,7 +6,7 @@ from app import exc
 from app.utils import analyze_keys, find_by_genre, valid_profile_kid, serializer
 from app.exc import PermissionError, EmptyListError, InvalidProfileError, NotFoundError
 from sqlalchemy import and_
-from werkzeug.exceptions import NotFound, BadRequestKeyError
+from werkzeug.exceptions import NotFound
 
 from app.configs.var_age import AGE_KIDS
 from app.models.series_model import SeriesModel
@@ -74,13 +74,6 @@ def get_series():
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
     
-
-    except NotFoundError:
-        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
-    
-    except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
-    
     except EmptyListError as e:
         return {"Message": e.description}, e.code
 
@@ -91,13 +84,12 @@ def get_serie_by_id(id):
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
             serie = SeriesModel.query.filter_by(id=id).first()
-        else:    
-
+        else:
             serie = SeriesModel.query.filter(and_(SeriesModel.classification <= AGE_KIDS, SeriesModel.id == id)).first()
 
 
         if not serie:
-            return {"message": "Serie not found or inappropriate"}, HTTPStatus.NOT_FOUND
+            return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
 
         serie_serializer = {
             "id": serie.id,
@@ -137,8 +129,7 @@ def get_serie_by_id(id):
 @jwt_required()
 def get_serie_by_name():
     try:
-        series_name: str = request.args['name']
-        
+        series_name = request.args.get("name")
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
             series = SeriesModel.query.filter(SeriesModel.name.ilike(f"%{series_name}%")).all()
@@ -185,15 +176,18 @@ def get_serie_by_name():
     
     if not series:
         return {"message": "Serie not found"}, HTTPStatus.NOT_FOUND
-      
-      
+
+
+    return jsonify(series),HTTPStatus.OK
+
+
 @jwt_required()
 def get_serie_most_seen():
     try:
         user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
         if not valid_profile_kid(user):
             series = SeriesModel.query.order_by(SeriesModel.views.desc()).limit(5).all()
-        else:        
+        else:
             series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).order_by(SeriesModel.views.desc()).limit(5).all()
         
         
@@ -208,7 +202,6 @@ def get_serie_most_seen():
     return jsonify(series), HTTPStatus.OK
 
 
-
 @jwt_required()
 def series_recents():
     try:
@@ -216,7 +209,7 @@ def series_recents():
         if not valid_profile_kid(user):
             series = SeriesModel.query.order_by(SeriesModel.created_at.desc()).all()
         else:
-            series = SeriesModel.query.filter(SeriesModel.classification <= 12).order_by(SeriesModel.created_at.desc()).all()
+            series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).order_by(SeriesModel.created_at.desc()).all()
         
         
         return jsonify(serializer(series)), HTTPStatus.OK
@@ -226,7 +219,15 @@ def series_recents():
     
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
-   
+    
+    return jsonify(series), HTTPStatus.OK
+
+
+@jwt_required()
+def get_appropriated_series(profile_id: int):
+    try:
+        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
+        if not valid_profile_kid(user):
             series = SeriesModel.query.all()
         else:
             series = SeriesModel.query.filter(SeriesModel.classification <= AGE_KIDS).all()
@@ -342,11 +343,11 @@ def remove_favorite():
     return jsonify({}), HTTPStatus.NO_CONTENT
 
 @jwt_required()
-def add_to_genre():
+def add_to_gender():
     body = request.get_json()
 
     try:
-        analyze_keys(["genre_id", "serie_id"], body)
+        analyze_keys(["gender_id", "serie_id"], body)
 
         administer = get_jwt_identity()
 
@@ -355,7 +356,7 @@ def add_to_genre():
             
 
         serie = SeriesModel.query.filter_by(id=body["serie_id"]).first_or_404("Serie not found")
-        gender = GendersModel.query.filter_by(id=body["genre_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=body["gender_id"]).first_or_404("Gender not found")
         serie.genders.append(gender)
         current_app.db.session.add(gender)
         current_app.db.session.commit()
@@ -372,10 +373,10 @@ def add_to_genre():
     return {}, HTTPStatus.NO_CONTENT
 
 @jwt_required()
-def remove_from_genre():
+def remove_from_gender():
     data = request.get_json()
     try:
-        analyze_keys(["genre_id", "serie_id"], data)
+        analyze_keys(["gender_id", "serie_id"], data)
         
         administer = get_jwt_identity()
 
@@ -383,7 +384,7 @@ def remove_from_genre():
             raise PermissionError
             
         serie = SeriesModel.query.filter_by(id=data["serie_id"]).first_or_404("serie not found")
-        gender = GendersModel.query.filter_by(id=data["genre_id"]).first_or_404("Gender not found")
+        gender = GendersModel.query.filter_by(id=data["gender_id"]).first_or_404("Gender not found")
         remove = serie.genders.index(gender)
         serie.genders.pop(remove)
         current_app.db.session.add(serie)
@@ -405,16 +406,12 @@ def remove_from_genre():
 
 
 @jwt_required()
-def get_series_by_genre():
-    try:
-        genre_name: str = request.args['genre']
+def get_series_by_genre(genre_name: str):
+#TODO não filtra kids
 
-        series = find_by_genre(genre_name)
+    series = find_by_genre(genre_name)
 
-        return series
-        
-    except BadRequestKeyError:
-        return {"error": "The query 'genre' is necessary to search by genre"}, HTTPStatus.BAD_REQUEST
+    return series
 
 
 @jwt_required()
