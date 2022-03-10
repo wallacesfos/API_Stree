@@ -24,8 +24,10 @@ bp_movies = Blueprint("movies", __name__, url_prefix="/movies")
 bp_movies.post("")(create_movie)
 bp_movies.get("")(get_movies)
 bp_movies.get("/<int:id>")(get_movie_by_id)
+
+
+
 bp_movies.get("/genre/<genre_name>")(get_movies_by_genre)
-bp_movies.get("/profile/<int:profile_id>")(get_appropriated_movie)
 bp_movies.get("/recents")(get_most_recent_movies)
 bp_movies.get("/most_seen")(get_most_seen_movies)
 bp_movies.get("/")(get_movies_by_name)

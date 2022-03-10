@@ -175,29 +175,6 @@ def get_most_recent_movies():
     except InvalidProfileError:
         return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
 
-
-@jwt_required()
-def get_appropriated_movie(profile_id: int):
-    try:
-        user = UserModel.query.filter_by(id=get_jwt_identity()["id"]).first_or_404("User not found")
-        if not valid_profile_kid(user):
-            movies = MoviesModel.query.all()
-        else:
-            movies = MoviesModel.query.filter(MoviesModel.classification <= AGE_KIDS).all()
-
-        if not movies: 
-            raise EmptyListError(description="There is no movies to watch")
-
-        return jsonify(movies), HTTPStatus.OK
-    
-    except NotFoundError:
-        return {"error": "Profile not found"}, HTTPStatus.NOT_FOUND
-    
-    except InvalidProfileError:
-        return {"error": "Invalid profile for user"}, HTTPStatus.CONFLICT
-    
-    except EmptyListError as e:
-        return {"Message": e.description}, e.code
     
     
 @jwt_required()
