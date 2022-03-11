@@ -91,13 +91,13 @@ DELETE - /series/favorite Remove uma série dos favoritos de um perfil
 
 **EPISODES ROUTES**
 
-POST ****- /episodes     Adiciona um episódio à uma série
+POST - /episodes     Adiciona um episódio à uma série
 
 GET - /episodes Retorna todos os episódios do banco de dados
 
-GET ****- /episodes/<int:id>  Retorna um episódio específico pelo id
+GET - /episodes/<int:id>  Retorna um episódio específico pelo id
 
-DELETE **-** /epiosdes/<int:id> Remove um episódio do banco de dados
+DELETE - /epiosdes/<int:id> Remove um episódio do banco de dados
 
 **MOVIES ROUTES**
 POST - /movies/genre Adiciona um filme à um gênero
@@ -144,18 +144,18 @@ PATCH - /genders/int:id   Altera o nome de um gênero já criado
         - Retorno da requisição status code 201 (CREATED)
         
         ```json
-        **{
+        {
          "msg": "user created successfully"
-        }, 201**
+        }, 201
         
         ```
         
         - Retorno da requisição caso o email já exista, status code 409 (CONFLICT)
         
         ```json
-        **{
+        {
          "error": "email já existe"
-        }, 409**
+        }, 409
         ```
         
         - Retorno da requisição caso alguns dos campos estejam errados, status code 400 (BAD_REQUEST)
@@ -189,10 +189,10 @@ PATCH - /genders/int:id   Altera o nome de um gênero já criado
         - Retorno da requisição, status code 201 (CREATED)
         
         ```json
-        **{**
+        {
          "id": 1,
-         **"access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
-        }**
+         "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9..."
+        }
         ```
         
         - Retorno da requisição caso dos dados(VALORES) estejam errados, status code 400 (BAD_REQUEST)
@@ -352,8 +352,7 @@ PATCH - /genders/int:id   Altera o nome de um gênero já criado
         - Retorno da requisição 200 (OK)
         
         ```json
-        {
-        	[
+        {[
         	{
         		"id": 1,
         		"name": "Nome Do Perfil 1",
@@ -968,7 +967,7 @@ PATCH - /genders/int:id   Altera o nome de um gênero já criado
         }
         ```
         
-    - **GET /**series/name?name=name_to_search
+    - **GET** /series/name?name=name_to_search
         - Todos as séries que tenham determinada palavra
         - Deve ter o id do perfil no corpo da requisição. O perfil deve estar relacionado ao usuário logado.
         
@@ -1734,11 +1733,7 @@ PATCH - /genders/int:id   Altera o nome de um gênero já criado
         ```
         
         - Retorno esperado, sucesso sem conteúdo 204(NO_CONTENT)
-        
-        ```json
-        {não está salvando}
-        ```
-        
+                
         - Retorno da requisição caso não for administrador, status code 401 (UNAUTHORIZED)
         
         ```json
@@ -1783,7 +1778,7 @@ PATCH - /genders/int:id   Altera o nome de um gênero já criado
         {"error": "Admins only"}
         ```
         
-    - **POST/movies/genre**
+    - **POST** /movies/genre
         - Rota protegida, apenas administradores
         - formato da requisição
         
@@ -1893,7 +1888,7 @@ PATCH - /genders/int:id   Altera o nome de um gênero já criado
             }
             ```
             
-    - **DELETE**/movies/genre
+    - **DELETE** /movies/genre
         - Rota protegida, apenas administradores
         - formato da requisição
         
