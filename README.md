@@ -1,5 +1,52 @@
 # Api - Stree
 
+# 🧠 Equipe de Desenvolvimento<br>
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/smilly3D">
+        <img src="https://ca.slack-edge.com/TQZR39SET-U021DJE1TST-f8d74a880494-512" width="100px;" alt="Foto do Smilly Delmondes"/><br>
+        <sub>
+          <b>Smilly Delmondes</b>
+        </sub>
+      </a>
+    </td>
+   <td align="center">
+      <a href="https://github.com/IqueMoraes">
+        <img src="https://github.com/IqueMoraes.png" width="100px;" alt="Ique Moraes"/><br>
+        <sub>
+          <b>Ique Moraes</b>
+        </sub>
+      </a>
+    </td>
+   <td align="center">
+      <a href="https://github.com/wallacesfos">
+        <img src="https://github.com/wallacesfos.png" width="100px;" alt="Wallace Silva"/><br>
+        <sub>
+          <b>Wallace Silva</b>
+        </sub>
+      </a>
+    </td>
+   <td align="center">
+      <a href="https://github.com/ricardonegocios700">
+        <img src="https://github.com/ricardonegocios700.png" width="100px;" alt="Ricardo Oliveira"/><br>
+        <sub>
+          <b>Ricardo Oliveira</b>
+        </sub>
+      </a>
+    </td>
+    <td align="center">
+      <a href="https://github.com/juliagamaol">
+        <img src="https://github.com/juliagamaol.png" width="100px;" alt="Julia Gama de Oliveira"/><br>
+        <sub>
+          <b>Julia Gama de Oliveira</b>
+        </sub>
+      </a>
+    </td>
+  </tr>
+</table>
+
+
 ## Overview:
 
 O **Stree** é uma plataforma de streaming de filmes e séries da atualidade ao alcance de um clique!
